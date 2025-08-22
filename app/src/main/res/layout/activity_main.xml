@@ -46,16 +46,6 @@
         android:layout_height="wrap_content"
         android:text="无障碍服务: 检查中..."
         android:textSize="16sp"
-        android:layout_marginBottom="8dp" />
-
-    <TextView
-        android:id="@+id/tvMappingMode"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="按键映射模式: 媒体播放暂停键"
-        android:textSize="16sp"
-        android:textColor="@android:color/holo_blue_dark"
-        android:textStyle="bold"
         android:layout_marginBottom="32dp" />
 
     <TextView
@@ -85,15 +75,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="打开无障碍设置"
-        android:layout_marginBottom="8dp" />
-
-    <Button
-        android:id="@+id/btnSwitchMode"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="切换按键映射模式"
-        android:background="@android:color/holo_blue_light"
-        android:textColor="@android:color/white"
         android:layout_marginBottom="16dp" />
 
     <Button
@@ -114,7 +95,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="使用说明：\n1. 确保蓝牙已启用并配对遥控器\n2. 授予所需权限\n3. 在设置中启用无障碍服务\n4. 启动服务即可使用"
+        android:text="使用说明：\n1. 确保蓝牙已启用并配对遥控器\n2. 授予所需权限\n3. 在设置中启用无障碍服务\n4. 启动服务\n5. 按遥控器OK键将映射为媒体播放/暂停键"
         android:textSize="14sp"
         android:layout_marginTop="32dp"
         android:background="@android:color/background_light"

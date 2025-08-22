@@ -114,11 +114,6 @@ class MainActivity : AppCompatActivity() {
             Log.d(TAG, "点击启用蓝牙按钮")
             enableBluetooth()
         }
-        
-        binding.btnSwitchMode.setOnClickListener {
-            Log.d(TAG, "点击切换模式按钮")
-            switchMappingMode()
-        }
     }
     
     private fun checkPermissions() {
@@ -233,9 +228,6 @@ class MainActivity : AppCompatActivity() {
         binding.tvPermissionStatus.text = if (permissionsGranted) "权限: 已授予" else "权限: 未授予"
         binding.tvAccessibilityStatus.text = if (accessibilityEnabled) "无障碍服务: 已启用" else "无障碍服务: 未启用"
         
-        // 更新模式显示
-        updateMappingModeDisplay()
-        
         val canStartService = bluetoothEnabled && permissionsGranted && accessibilityEnabled
         Log.d(TAG, "启动服务按钮状态: $canStartService")
         
@@ -249,32 +241,6 @@ class MainActivity : AppCompatActivity() {
         updateUI()
     }
     
-    private fun switchMappingMode() {
-        val newMode = KeyMapperAccessibilityService.switchToNextMode()
-        val modeName = KeyMapperAccessibilityService.getModeName(newMode)
-        
-        Log.d(TAG, "切换到映射模式: $modeName")
-        Toast.makeText(this, "切换到: $modeName", Toast.LENGTH_SHORT).show()
-        
-        updateMappingModeDisplay()
-    }
-    
-    private fun updateMappingModeDisplay() {
-        val currentMode = KeyMapperAccessibilityService.getCurrentMode()
-        val modeName = KeyMapperAccessibilityService.getModeName(currentMode)
-        
-        binding.tvMappingMode.text = "按键映射模式: $modeName"
-        
-        // 根据模式设置不同的颜色
-        val color = when (currentMode) {
-            KeyMapperAccessibilityService.MODE_MEDIA_KEY -> android.R.color.holo_green_dark
-            KeyMapperAccessibilityService.MODE_SPACE_KEY -> android.R.color.holo_blue_dark
-            KeyMapperAccessibilityService.MODE_SCREEN_TAP -> android.R.color.holo_orange_dark
-            else -> android.R.color.black
-        }
-        
-        binding.tvMappingMode.setTextColor(ContextCompat.getColor(this, color))
-    }
     
     override fun onDestroy() {
         super.onDestroy()
