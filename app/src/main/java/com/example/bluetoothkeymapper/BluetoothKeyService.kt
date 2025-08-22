@@ -23,8 +23,6 @@ class BluetoothKeyService : Service() {
     
     companion object {
         private const val TAG = "BluetoothKeyService"
-        private const val NOTIFICATION_ID = 1
-        private const val CHANNEL_ID = "BluetoothKeyService"
     }
     
     inner class LocalBinder : Binder() {
@@ -34,7 +32,6 @@ class BluetoothKeyService : Service() {
     override fun onCreate() {
         super.onCreate()
         initializeService()
-        createNotificationChannel()
     }
     
     private fun initializeService() {
@@ -44,44 +41,10 @@ class BluetoothKeyService : Service() {
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (!isServiceStarted) {
-            startForegroundService()
-            isServiceStarted = true
-        }
+        isServiceStarted = true
         return START_STICKY
     }
     
-    private fun startForegroundService() {
-        val notification = createNotification()
-        startForeground(NOTIFICATION_ID, notification)
-    }
-    
-    private fun createNotification(): Notification {
-        val notificationIntent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, notificationIntent, 
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("蓝牙按键映射器")
-            .setContentText("服务正在运行")
-            .setSmallIcon(android.R.drawable.ic_media_play)
-            .setContentIntent(pendingIntent)
-            .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .build()
-    }
-    
-    private fun createNotificationChannel() {
-        val serviceChannel = NotificationChannel(
-            CHANNEL_ID,
-            "蓝牙按键映射服务",
-            NotificationManager.IMPORTANCE_LOW
-        )
-        val manager = getSystemService(NotificationManager::class.java)
-        manager?.createNotificationChannel(serviceChannel)
-    }
     
     fun startBluetoothScanning() {
         if (bluetoothAdapter?.isEnabled != true) {

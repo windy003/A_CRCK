@@ -159,9 +159,9 @@ class MainActivity : AppCompatActivity() {
         }
         
         try {
-            Log.d(TAG, "启动前台服务")
+            Log.d(TAG, "启动服务")
             val intent = Intent(this, BluetoothKeyService::class.java)
-            startForegroundService(intent)
+            startService(intent)
             bluetoothKeyService?.startBluetoothScanning()
             
             Toast.makeText(this, "服务已启动", Toast.LENGTH_SHORT).show()
