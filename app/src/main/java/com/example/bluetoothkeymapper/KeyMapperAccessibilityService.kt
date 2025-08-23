@@ -111,16 +111,17 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             KeyEvent.KEYCODE_DPAD_LEFT -> {  // 21 方向键左
                 Log.e(TAG, "!!! 检测到dpad left按键: ${event.keyCode} !!!")
                 
-                if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (isDoubleClickMappingEnabled) {
+                if (isDoubleClickMappingEnabled) {
+                    if (event.action == KeyEvent.ACTION_DOWN) {
                         Log.e(TAG, "执行双击屏幕坐标(133,439)操作")
                         performDoubleClick(133f, 439f)
                         Log.e(TAG, "双击操作完成")
-                    } else {
-                        Log.w(TAG, "双击映射功能已关闭，忽略dpad left按键")
                     }
+                    return true // 只在映射开启时拦截原始事件
+                } else {
+                    Log.w(TAG, "双击映射功能已关闭，恢复左方向键原有功能")
+                    return super.onKeyEvent(event) // 不拦截，让系统处理原有功能
                 }
-                return true // 拦截原始事件
             }
             
         }
