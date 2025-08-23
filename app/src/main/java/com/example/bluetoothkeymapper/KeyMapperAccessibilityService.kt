@@ -1,7 +1,9 @@
 package com.example.bluetoothkeymapper
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.GestureDescription
 import android.content.Intent
+import android.graphics.Path
 import android.media.AudioManager
 import android.util.Log
 import android.view.KeyEvent
@@ -10,6 +12,7 @@ import android.view.accessibility.AccessibilityEvent
 class KeyMapperAccessibilityService : AccessibilityService() {
     
     private var audioManager: AudioManager? = null
+    private var isDoubleClickMappingEnabled = true // 双击映射功能开关，默认开启
     
     companion object {
         private const val TAG = "KeyMapperAccessibility"
@@ -31,8 +34,11 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         // 测试日志输出
         android.os.Handler().postDelayed({
             Log.e(TAG, "无障碍服务准备就绪，开始监听所有按键事件")
-            Log.e(TAG, "映射模式: 媒体播放暂停键")
-            Log.i(TAG, "请按下蓝牙遥控器的OK键进行测试")
+            Log.e(TAG, "映射模式: 媒体播放暂停键 + 双击屏幕映射")
+            Log.e(TAG, "双击映射功能状态: ${if (isDoubleClickMappingEnabled) "开启" else "关闭"}")
+            Log.i(TAG, "dpad left: 双击屏幕坐标(133,439)")
+            Log.i(TAG, "dpad right: 切换双击映射功能开关")
+            Log.i(TAG, "请按下蓝牙遥控器按键进行测试")
             android.util.Log.wtf(TAG, "最高级别日志：等待按键事件...")
         }, 1000)
     }
@@ -88,6 +94,34 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 }
                 return true // 拦截原始事件
             }
+            
+            // 处理dpad left键 - 映射为双击屏幕坐标(133,439)实现YouTube后退5秒
+            20,                              // dpad left键码
+            KeyEvent.KEYCODE_DPAD_LEFT -> {  // 21 方向键左
+                Log.e(TAG, "!!! 检测到dpad left按键: ${event.keyCode} !!!")
+                
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    if (isDoubleClickMappingEnabled) {
+                        Log.e(TAG, "执行双击屏幕坐标(133,439)操作")
+                        performDoubleClick(133f, 439f)
+                        Log.e(TAG, "双击操作完成")
+                    } else {
+                        Log.w(TAG, "双击映射功能已关闭，忽略dpad left按键")
+                    }
+                }
+                return true // 拦截原始事件
+            }
+            
+            // 处理dpad right键 - 作为映射功能开关
+            22,                              // dpad right键码
+            KeyEvent.KEYCODE_DPAD_RIGHT -> { // 22 方向键右
+                Log.e(TAG, "!!! 检测到dpad right按键: ${event.keyCode} !!!")
+                
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    toggleDoubleClickMapping()
+                }
+                return true // 拦截原始事件
+            }
         }
         
         // 记录所有未处理的按键
@@ -111,6 +145,100 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         } catch (e: Exception) {
             Log.e(TAG, "发送媒体按键失败: ${e.message}")
         }
+    }
+    
+    private fun performDoubleClick(x: Float, y: Float) {
+        try {
+            Log.e(TAG, "开始执行双击操作，坐标: ($x, $y)")
+            
+            // 创建第一次点击的手势
+            val firstClickPath = Path().apply {
+                moveTo(x, y)
+            }
+            
+            val firstClickStroke = GestureDescription.StrokeDescription(
+                firstClickPath, 0, 100
+            )
+            
+            val firstClickGesture = GestureDescription.Builder()
+                .addStroke(firstClickStroke)
+                .build()
+            
+            // 执行第一次点击
+            val result1 = dispatchGesture(firstClickGesture, object : GestureResultCallback() {
+                override fun onCompleted(gestureDescription: GestureDescription?) {
+                    super.onCompleted(gestureDescription)
+                    Log.d(TAG, "第一次点击完成")
+                    
+                    // 延迟后执行第二次点击
+                    android.os.Handler().postDelayed({
+                        executeSecondClick(x, y)
+                    }, 100) // 100ms延迟
+                }
+                
+                override fun onCancelled(gestureDescription: GestureDescription?) {
+                    super.onCancelled(gestureDescription)
+                    Log.e(TAG, "第一次点击被取消")
+                }
+            }, null)
+            
+            Log.d(TAG, "第一次点击手势分发结果: $result1")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "执行双击操作失败: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+    
+    private fun executeSecondClick(x: Float, y: Float) {
+        try {
+            Log.d(TAG, "执行第二次点击")
+            
+            // 创建第二次点击的手势
+            val secondClickPath = Path().apply {
+                moveTo(x, y)
+            }
+            
+            val secondClickStroke = GestureDescription.StrokeDescription(
+                secondClickPath, 0, 100
+            )
+            
+            val secondClickGesture = GestureDescription.Builder()
+                .addStroke(secondClickStroke)
+                .build()
+            
+            // 执行第二次点击
+            val result2 = dispatchGesture(secondClickGesture, object : GestureResultCallback() {
+                override fun onCompleted(gestureDescription: GestureDescription?) {
+                    super.onCompleted(gestureDescription)
+                    Log.e(TAG, "双击操作完全完成")
+                }
+                
+                override fun onCancelled(gestureDescription: GestureDescription?) {
+                    super.onCancelled(gestureDescription)
+                    Log.e(TAG, "第二次点击被取消")
+                }
+            }, null)
+            
+            Log.d(TAG, "第二次点击手势分发结果: $result2")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "执行第二次点击失败: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+    
+    private fun toggleDoubleClickMapping() {
+        isDoubleClickMappingEnabled = !isDoubleClickMappingEnabled
+        val status = if (isDoubleClickMappingEnabled) "开启" else "关闭"
+        
+        Log.e(TAG, "=== 双击映射功能开关切换 ===")
+        Log.e(TAG, "当前状态: $status")
+        Log.e(TAG, "dpad left键映射: ${if (isDoubleClickMappingEnabled) "双击屏幕(133,439)" else "已禁用"}")
+        Log.e(TAG, "===============================")
+        
+        // 使用Android系统通知样式的日志
+        android.util.Log.wtf(TAG, "🔧 双击映射功能已$status")
     }
     
     override fun onDestroy() {
