@@ -2,6 +2,7 @@ package com.example.bluetoothkeymapper
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
+import android.content.Context
 import android.content.Intent
 import android.graphics.Path
 import android.media.AudioManager
@@ -16,12 +17,22 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     
     companion object {
         private const val TAG = "KeyMapperAccessibility"
+        var instance: KeyMapperAccessibilityService? = null
+        private const val PREFS_NAME = "KeyMapperPrefs"
+        private const val PREF_DOUBLE_CLICK_ENABLED = "double_click_mapping_enabled"
     }
     
     override fun onCreate() {
         super.onCreate()
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+        instance = this
+        
+        // 从SharedPreferences读取初始状态
+        val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        isDoubleClickMappingEnabled = sharedPreferences.getBoolean(PREF_DOUBLE_CLICK_ENABLED, true)
+        
         Log.d(TAG, "无障碍服务已创建")
+        Log.d(TAG, "双击映射初始状态: ${if (isDoubleClickMappingEnabled) "开启" else "关闭"}")
     }
     
     override fun onServiceConnected() {
@@ -37,8 +48,8 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             Log.e(TAG, "映射模式: 媒体播放暂停键 + 双击屏幕映射")
             Log.e(TAG, "双击映射功能状态: ${if (isDoubleClickMappingEnabled) "开启" else "关闭"}")
             Log.i(TAG, "dpad left: 双击屏幕坐标(133,439)")
-            Log.i(TAG, "dpad right: 切换双击映射功能开关")
             Log.i(TAG, "请按下蓝牙遥控器按键进行测试")
+            Log.i(TAG, "提示: 可在APP界面切换双击映射功能开关")
             android.util.Log.wtf(TAG, "最高级别日志：等待按键事件...")
         }, 1000)
     }
@@ -112,16 +123,6 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
             
-            // 处理dpad right键 - 作为映射功能开关
-            22,                              // dpad right键码
-            KeyEvent.KEYCODE_DPAD_RIGHT -> { // 22 方向键右
-                Log.e(TAG, "!!! 检测到dpad right按键: ${event.keyCode} !!!")
-                
-                if (event.action == KeyEvent.ACTION_DOWN) {
-                    toggleDoubleClickMapping()
-                }
-                return true // 拦截原始事件
-            }
         }
         
         // 记录所有未处理的按键
@@ -228,11 +229,11 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         }
     }
     
-    private fun toggleDoubleClickMapping() {
-        isDoubleClickMappingEnabled = !isDoubleClickMappingEnabled
+    fun setDoubleClickMappingEnabled(enabled: Boolean) {
+        isDoubleClickMappingEnabled = enabled
         val status = if (isDoubleClickMappingEnabled) "开启" else "关闭"
         
-        Log.e(TAG, "=== 双击映射功能开关切换 ===")
+        Log.e(TAG, "=== 双击映射功能状态更新 ===")
         Log.e(TAG, "当前状态: $status")
         Log.e(TAG, "dpad left键映射: ${if (isDoubleClickMappingEnabled) "双击屏幕(133,439)" else "已禁用"}")
         Log.e(TAG, "===============================")
@@ -241,8 +242,13 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         android.util.Log.wtf(TAG, "🔧 双击映射功能已$status")
     }
     
+    fun isDoubleClickMappingEnabled(): Boolean {
+        return isDoubleClickMappingEnabled
+    }
+    
     override fun onDestroy() {
         super.onDestroy()
+        instance = null
         Log.d(TAG, "无障碍服务已销毁")
     }
 }

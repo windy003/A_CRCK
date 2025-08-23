@@ -7,6 +7,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -25,9 +26,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var bluetoothKeyService: BluetoothKeyService? = null
     private var serviceBound = false
+    private lateinit var sharedPreferences: SharedPreferences
     
     companion object {
         private const val TAG = "MainActivity"
+        private const val PREFS_NAME = "KeyMapperPrefs"
+        private const val PREF_DOUBLE_CLICK_ENABLED = "double_click_mapping_enabled"
     }
     
     private val bluetoothPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -83,6 +87,8 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         
+        sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        
         setupUI()
         checkPermissions()
     }
@@ -113,6 +119,32 @@ class MainActivity : AppCompatActivity() {
         binding.btnEnableBluetooth.setOnClickListener {
             Log.d(TAG, "点击启用蓝牙按钮")
             enableBluetooth()
+        }
+        
+        // 设置双击映射开关
+        val isDoubleClickEnabled = sharedPreferences.getBoolean(PREF_DOUBLE_CLICK_ENABLED, true)
+        binding.switchDoubleClickMapping.isChecked = isDoubleClickEnabled
+        updateMappingStatus(isDoubleClickEnabled)
+        
+        binding.switchDoubleClickMapping.setOnCheckedChangeListener { _, isChecked ->
+            Log.d(TAG, "双击映射开关状态改变: $isChecked")
+            
+            // 保存状态
+            sharedPreferences.edit()
+                .putBoolean(PREF_DOUBLE_CLICK_ENABLED, isChecked)
+                .apply()
+            
+            // 更新无障碍服务状态
+            KeyMapperAccessibilityService.instance?.setDoubleClickMappingEnabled(isChecked)
+            
+            // 更新UI显示
+            updateMappingStatus(isChecked)
+            
+            Toast.makeText(
+                this, 
+                if (isChecked) "双击映射功能已开启" else "双击映射功能已关闭",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
     
@@ -234,6 +266,25 @@ class MainActivity : AppCompatActivity() {
         binding.btnStartService.isEnabled = canStartService
         binding.btnEnableBluetooth.isEnabled = !bluetoothEnabled && permissionsGranted
         binding.btnPermissions.isEnabled = !permissionsGranted
+        
+        // 同步双击映射状态
+        val isDoubleClickEnabled = sharedPreferences.getBoolean(PREF_DOUBLE_CLICK_ENABLED, true)
+        updateMappingStatus(isDoubleClickEnabled)
+    }
+    
+    private fun updateMappingStatus(enabled: Boolean) {
+        binding.tvMappingStatus.text = if (enabled) {
+            "状态: 双击映射已开启"
+        } else {
+            "状态: 双击映射已关闭"
+        }
+        
+        binding.tvMappingStatus.setTextColor(
+            ContextCompat.getColor(
+                this,
+                if (enabled) android.R.color.holo_green_dark else android.R.color.holo_red_dark
+            )
+        )
     }
     
     override fun onResume() {
