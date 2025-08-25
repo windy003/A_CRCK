@@ -4,6 +4,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.service.quicksettings.Tile
@@ -147,13 +152,8 @@ class YoutubeModeToggleTileService : TileService() {
                 tile.subtitle = if (isEnabled) "后退5秒已开启" else "后退5秒已关闭"
             }
             
-            // 设置图标 - 使用更明显的区分
-            val iconRes = if (isEnabled) {
-                android.R.drawable.ic_media_play
-            } else {
-                android.R.drawable.ic_media_pause
-            }
-            tile.icon = Icon.createWithResource(this, iconRes)
+            // 设置图标 - 使用字母Y
+            tile.icon = createYIcon()
             
             // 更新磁贴显示
             tile.updateTile()
@@ -164,5 +164,27 @@ class YoutubeModeToggleTileService : TileService() {
             Log.e(TAG, "更新磁贴状态失败: ${e.message}")
             e.printStackTrace()
         }
+    }
+    
+    private fun createYIcon(): Icon {
+        val size = 64 // 图标大小
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        
+        // 设置画笔
+        val paint = Paint().apply {
+            color = Color.WHITE
+            textSize = 48f
+            typeface = Typeface.DEFAULT_BOLD
+            isAntiAlias = true
+            textAlign = Paint.Align.CENTER
+        }
+        
+        // 在画布中央绘制字母Y
+        val centerX = size / 2f
+        val centerY = size / 2f + paint.textSize / 3f // 稍微向下偏移以居中
+        canvas.drawText("Y", centerX, centerY, paint)
+        
+        return Icon.createWithBitmap(bitmap)
     }
 }
