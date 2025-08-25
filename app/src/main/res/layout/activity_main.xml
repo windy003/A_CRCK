@@ -78,19 +78,11 @@
         android:layout_marginBottom="16dp" />
 
     <Button
-        android:id="@+id/btnStartService"
+        android:id="@+id/btnToggleService"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="启动服务"
         android:background="@android:color/holo_green_light"
-        android:layout_marginBottom="8dp" />
-
-    <Button
-        android:id="@+id/btnStopService"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="停止服务"
-        android:background="@android:color/holo_red_light"
         android:layout_marginBottom="24dp" />
 
     <!-- 双击映射功能开关区域 -->

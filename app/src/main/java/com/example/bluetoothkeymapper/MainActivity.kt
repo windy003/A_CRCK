@@ -18,6 +18,7 @@ import android.os.IBinder
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
+import android.app.ActivityManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -30,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private var serviceBound = false
     private lateinit var sharedPreferences: SharedPreferences
     private var isReceiverRegistered = false
+    private var isServiceRunning = false
     
     companion object {
         private const val TAG = "MainActivity"
@@ -117,19 +119,19 @@ class MainActivity : AppCompatActivity() {
         
         setupUI()
         checkPermissions()
+        checkServiceRunningState()
     }
     
     private fun setupUI() {
         Log.d(TAG, "设置UI")
         
-        binding.btnStartService.setOnClickListener {
-            Log.d(TAG, "点击启动服务按钮, serviceBound: $serviceBound")
-            startBluetoothService()
-        }
-        
-        binding.btnStopService.setOnClickListener {
-            Log.d(TAG, "点击停止服务按钮")
-            stopBluetoothService()
+        binding.btnToggleService.setOnClickListener {
+            Log.d(TAG, "点击服务切换按钮, 当前状态: $isServiceRunning")
+            if (isServiceRunning) {
+                stopBluetoothService()
+            } else {
+                startBluetoothService()
+            }
         }
         
         binding.btnAccessibilitySettings.setOnClickListener {
@@ -217,6 +219,27 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
+    private fun checkServiceRunningState() {
+        try {
+            val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            for (service in activityManager.getRunningServices(Integer.MAX_VALUE)) {
+                if (BluetoothKeyService::class.java.name == service.service.className) {
+                    isServiceRunning = true
+                    Log.d(TAG, "检测到服务正在运行")
+                    updateServiceButton()
+                    return
+                }
+            }
+            isServiceRunning = false
+            Log.d(TAG, "服务未运行")
+            updateServiceButton()
+        } catch (e: Exception) {
+            Log.e(TAG, "检查服务运行状态失败: ${e.message}")
+            isServiceRunning = false
+            updateServiceButton()
+        }
+    }
+    
     private fun checkPermissions() {
         val missingPermissions = bluetoothPermissions.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
@@ -265,7 +288,9 @@ class MainActivity : AppCompatActivity() {
             startService(intent)
             bluetoothKeyService?.startBluetoothScanning()
             
+            isServiceRunning = true
             Toast.makeText(this, "服务已启动", Toast.LENGTH_SHORT).show()
+            updateServiceButton()
             updateUI()
         } catch (e: Exception) {
             Log.e(TAG, "启动服务失败", e)
@@ -277,8 +302,24 @@ class MainActivity : AppCompatActivity() {
         val intent = Intent(this, BluetoothKeyService::class.java)
         stopService(intent)
         
+        isServiceRunning = false
         Toast.makeText(this, "服务已停止", Toast.LENGTH_SHORT).show()
+        updateServiceButton()
         updateUI()
+    }
+    
+    private fun updateServiceButton() {
+        if (isServiceRunning) {
+            binding.btnToggleService.text = "停止服务"
+            binding.btnToggleService.setBackgroundColor(
+                ContextCompat.getColor(this, android.R.color.holo_red_light)
+            )
+        } else {
+            binding.btnToggleService.text = "启动服务"
+            binding.btnToggleService.setBackgroundColor(
+                ContextCompat.getColor(this, android.R.color.holo_green_light)
+            )
+        }
     }
     
     private fun openAccessibilitySettings() {
@@ -330,11 +371,14 @@ class MainActivity : AppCompatActivity() {
         binding.tvAccessibilityStatus.text = if (accessibilityEnabled) "无障碍服务: 已启用" else "无障碍服务: 未启用"
         
         val canStartService = bluetoothEnabled && permissionsGranted && accessibilityEnabled
-        Log.d(TAG, "启动服务按钮状态: $canStartService")
+        Log.d(TAG, "服务按钮可用状态: $canStartService")
         
-        binding.btnStartService.isEnabled = canStartService
+        binding.btnToggleService.isEnabled = canStartService || isServiceRunning
         binding.btnEnableBluetooth.isEnabled = !bluetoothEnabled && permissionsGranted
         binding.btnPermissions.isEnabled = !permissionsGranted
+        
+        // 更新服务按钮的显示状态
+        updateServiceButton()
         
         // 同步双击映射状态
         val isDoubleClickEnabled = sharedPreferences.getBoolean(PREF_DOUBLE_CLICK_ENABLED, true)
@@ -358,6 +402,10 @@ class MainActivity : AppCompatActivity() {
     
     override fun onResume() {
         super.onResume()
+        
+        // 检查服务运行状态
+        checkServiceRunningState()
+        
         updateUI()
         
         // 同步SharedPreferences中的状态到开关，防止磁贴修改后不同步
