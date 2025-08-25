@@ -56,6 +56,17 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <service
+            android:name=".YoutubeModeToggleTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_bluetooth"
+            android:label="双击映射"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>

@@ -3,9 +3,11 @@ package com.example.bluetoothkeymapper
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.ServiceConnection
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -27,11 +29,35 @@ class MainActivity : AppCompatActivity() {
     private var bluetoothKeyService: BluetoothKeyService? = null
     private var serviceBound = false
     private lateinit var sharedPreferences: SharedPreferences
+    private var isReceiverRegistered = false
     
     companion object {
         private const val TAG = "MainActivity"
         private const val PREFS_NAME = "KeyMapperPrefs"
         private const val PREF_DOUBLE_CLICK_ENABLED = "double_click_mapping_enabled"
+        private const val YOUTUBE_MODE_CHANGED_ACTION = "com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED"
+    }
+    
+    // 广播接收器监听磁贴状态变化
+    private val tileStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == YOUTUBE_MODE_CHANGED_ACTION) {
+                val enabled = intent.getBooleanExtra("enabled", true)
+                Log.d(TAG, "收到磁贴状态变化广播: $enabled")
+                
+                // 更新开关状态，但不触发监听器
+                binding.switchDoubleClickMapping.setOnCheckedChangeListener(null)
+                binding.switchDoubleClickMapping.isChecked = enabled
+                
+                // 重新设置监听器
+                setSwitchListener()
+                
+                // 更新UI显示
+                updateMappingStatus(enabled)
+                
+                Log.d(TAG, "已同步磁贴状态到MainActivity开关: $enabled")
+            }
+        }
     }
     
     private val bluetoothPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -126,6 +152,14 @@ class MainActivity : AppCompatActivity() {
         binding.switchDoubleClickMapping.isChecked = isDoubleClickEnabled
         updateMappingStatus(isDoubleClickEnabled)
         
+        // 设置开关监听器
+        setSwitchListener()
+        
+        // 注册广播接收器监听磁贴状态变化
+        registerTileReceiver()
+    }
+    
+    private fun setSwitchListener() {
         binding.switchDoubleClickMapping.setOnCheckedChangeListener { _, isChecked ->
             Log.d(TAG, "双击映射开关状态改变: $isChecked")
             
@@ -140,11 +174,46 @@ class MainActivity : AppCompatActivity() {
             // 更新UI显示
             updateMappingStatus(isChecked)
             
+            // 发送广播通知磁贴更新状态
+            val intent = Intent(YOUTUBE_MODE_CHANGED_ACTION)
+            intent.putExtra("enabled", isChecked)
+            sendBroadcast(intent)
+            Log.d(TAG, "已发送双击映射状态变化广播给磁贴")
+            
             Toast.makeText(
                 this, 
                 if (isChecked) "双击映射功能已开启" else "双击映射功能已关闭",
                 Toast.LENGTH_SHORT
             ).show()
+        }
+    }
+    
+    private fun registerTileReceiver() {
+        if (!isReceiverRegistered) {
+            try {
+                val filter = IntentFilter(YOUTUBE_MODE_CHANGED_ACTION)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    registerReceiver(tileStateReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+                } else {
+                    registerReceiver(tileStateReceiver, filter)
+                }
+                isReceiverRegistered = true
+                Log.d(TAG, "磁贴状态广播接收器注册成功")
+            } catch (e: Exception) {
+                Log.e(TAG, "注册磁贴状态广播接收器失败: ${e.message}")
+            }
+        }
+    }
+    
+    private fun unregisterTileReceiver() {
+        if (isReceiverRegistered) {
+            try {
+                unregisterReceiver(tileStateReceiver)
+                isReceiverRegistered = false
+                Log.d(TAG, "磁贴状态广播接收器取消注册成功")
+            } catch (e: Exception) {
+                Log.e(TAG, "取消注册磁贴状态广播接收器失败: ${e.message}")
+            }
         }
     }
     
@@ -290,6 +359,16 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateUI()
+        
+        // 同步SharedPreferences中的状态到开关，防止磁贴修改后不同步
+        val currentState = sharedPreferences.getBoolean(PREF_DOUBLE_CLICK_ENABLED, true)
+        if (binding.switchDoubleClickMapping.isChecked != currentState) {
+            Log.d(TAG, "onResume检测到状态不同步，更新开关状态: $currentState")
+            binding.switchDoubleClickMapping.setOnCheckedChangeListener(null)
+            binding.switchDoubleClickMapping.isChecked = currentState
+            setSwitchListener()
+            updateMappingStatus(currentState)
+        }
     }
     
     
@@ -298,5 +377,7 @@ class MainActivity : AppCompatActivity() {
         if (serviceBound) {
             unbindService(serviceConnection)
         }
+        // 取消注册广播接收器
+        unregisterTileReceiver()
     }
 }

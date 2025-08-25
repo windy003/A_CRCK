@@ -241,6 +241,20 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         
         // 使用Android系统通知样式的日志
         android.util.Log.wtf(TAG, "🔧 双击映射功能已$status")
+        
+        // 通知所有监听器状态变化
+        notifyYoutubeModeChanged(enabled)
+    }
+    
+    private fun notifyYoutubeModeChanged(enabled: Boolean) {
+        try {
+            val intent = Intent("com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED")
+            intent.putExtra("enabled", enabled)
+            sendBroadcast(intent)
+            Log.d(TAG, "已发送YouTube模式状态变化广播: $enabled")
+        } catch (e: Exception) {
+            Log.e(TAG, "发送状态变化广播失败: ${e.message}")
+        }
     }
     
     fun isDoubleClickMappingEnabled(): Boolean {
