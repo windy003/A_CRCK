@@ -107,7 +107,6 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             }
             
             // 处理dpad left键 - 映射为双击屏幕坐标(133,439)实现YouTube后退5秒
-            20,                              // dpad left键码
             KeyEvent.KEYCODE_DPAD_LEFT -> {  // 21 方向键左
                 Log.e(TAG, "!!! 检测到dpad left按键: ${event.keyCode} !!!")
                 
@@ -122,6 +121,18 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                     Log.w(TAG, "双击映射功能已关闭，恢复左方向键原有功能")
                     return super.onKeyEvent(event) // 不拦截，让系统处理原有功能
                 }
+            }
+            
+            // 处理dpad down键 - 映射为单击屏幕坐标(133,439)显示/隐藏控制器
+            KeyEvent.KEYCODE_DPAD_DOWN -> {  // 20 方向键下
+                Log.e(TAG, "!!! 检测到dpad down按键: ${event.keyCode} !!!")
+                
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    Log.e(TAG, "执行单击屏幕坐标(133,439)操作 - 显示/隐藏控制器")
+                    performSingleClick(133f, 439f)
+                    Log.e(TAG, "单击操作完成")
+                }
+                return true // 拦截原始事件
             }
             
         }
@@ -226,6 +237,44 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             
         } catch (e: Exception) {
             Log.e(TAG, "执行第二次点击失败: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+    
+    private fun performSingleClick(x: Float, y: Float) {
+        try {
+            Log.e(TAG, "开始执行单击操作，坐标: ($x, $y)")
+            
+            // 创建单击手势
+            val clickPath = Path().apply {
+                moveTo(x, y)
+            }
+            
+            val clickStroke = GestureDescription.StrokeDescription(
+                clickPath, 0, 100
+            )
+            
+            val clickGesture = GestureDescription.Builder()
+                .addStroke(clickStroke)
+                .build()
+            
+            // 执行单击
+            val result = dispatchGesture(clickGesture, object : GestureResultCallback() {
+                override fun onCompleted(gestureDescription: GestureDescription?) {
+                    super.onCompleted(gestureDescription)
+                    Log.e(TAG, "单击操作完成")
+                }
+                
+                override fun onCancelled(gestureDescription: GestureDescription?) {
+                    super.onCancelled(gestureDescription)
+                    Log.e(TAG, "单击操作被取消")
+                }
+            }, null)
+            
+            Log.d(TAG, "单击手势分发结果: $result")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "执行单击操作失败: ${e.message}")
             e.printStackTrace()
         }
     }
