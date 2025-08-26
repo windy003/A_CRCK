@@ -14,6 +14,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     
     private var audioManager: AudioManager? = null
     private var isDoubleClickMappingEnabled = true // 双击映射功能开关，默认开启
+    private var lastMediaPlayPauseTime = 0L // 上次播放/暂停按键时间戳
     
     companion object {
         private const val TAG = "KeyMapperAccessibility"
@@ -144,6 +145,15 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     
     private fun sendMediaPlayPause() {
         try {
+            val currentTime = System.currentTimeMillis()
+            val timeDifference = currentTime - lastMediaPlayPauseTime
+            
+            // 如果距离上次点击不足2秒，则忽略此次点击
+            if (timeDifference < 500) {
+                Log.w(TAG, "播放/暂停按键被屏蔽 - 距离上次点击仅${timeDifference}ms (需要2000ms)")
+                return
+            }
+            
             Log.e(TAG, "发送媒体播放暂停键...")
             
             val downEvent = KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
@@ -153,6 +163,9 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             val result1 = audioManager?.dispatchMediaKeyEvent(downEvent)
             Thread.sleep(50)
             val result2 = audioManager?.dispatchMediaKeyEvent(upEvent)
+            
+            // 更新最后一次播放/暂停按键的时间
+            lastMediaPlayPauseTime = currentTime
             
             Log.e(TAG, "媒体按键发送结果: down=$result1, up=$result2")
         } catch (e: Exception) {
