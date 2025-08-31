@@ -4,11 +4,13 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.Path
 import android.media.AudioManager
 import android.util.Log
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
+import java.io.IOException
 
 class KeyMapperAccessibilityService : AccessibilityService() {
     
@@ -49,6 +51,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             Log.e(TAG, "映射模式: 媒体播放暂停键 + 双击屏幕映射")
             Log.e(TAG, "双击映射功能状态: ${if (isDoubleClickMappingEnabled) "开启" else "关闭"}")
             Log.i(TAG, "dpad left: 双击屏幕坐标(133,439)")
+            Log.i(TAG, "dpad up: 点击CC按钮 (竖屏876,154 / 横屏2273,88)")
             Log.i(TAG, "请按下蓝牙遥控器按键进行测试")
             Log.i(TAG, "提示: 可在APP界面切换双击映射功能开关")
             android.util.Log.wtf(TAG, "最高级别日志：等待按键事件...")
@@ -136,6 +139,18 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
             
+            // 处理dpad up键 - 映射为按键c，用于打开/关闭YouTube CC字幕
+            KeyEvent.KEYCODE_DPAD_UP -> {  // 19 方向键上
+                Log.e(TAG, "!!! 检测到dpad up按键: ${event.keyCode} !!!")
+                
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    Log.e(TAG, "执行点击CC按钮操作 - 打开/关闭YouTube CC字幕")
+                    sendKeyC()
+                    Log.e(TAG, "CC按钮点击操作完成")
+                }
+                return true // 拦截原始事件
+            }
+            
         }
         
         // 记录所有未处理的按键
@@ -170,6 +185,38 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             Log.e(TAG, "媒体按键发送结果: down=$result1, up=$result2")
         } catch (e: Exception) {
             Log.e(TAG, "发送媒体按键失败: ${e.message}")
+        }
+    }
+    
+    private fun sendKeyC() {
+        try {
+            Log.e(TAG, "模拟点击CC按钮...")
+            
+            // 检测屏幕方向
+            val orientation = resources.configuration.orientation
+            val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+            
+            // 根据屏幕方向选择对应的坐标
+            val x: Float
+            val y: Float
+            if (isPortrait) {
+                // 竖屏坐标
+                x = 876f
+                y = 154f
+                Log.e(TAG, "检测到竖屏模式，使用坐标: ($x, $y)")
+            } else {
+                // 横屏坐标
+                x = 2273f
+                y = 88f
+                Log.e(TAG, "检测到横屏模式，使用坐标: ($x, $y)")
+            }
+            
+            // 执行单击CC按钮
+            performSingleClick(x, y)
+            Log.e(TAG, "CC按钮点击操作完成")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "模拟点击CC按钮失败: ${e.message}")
         }
     }
     
