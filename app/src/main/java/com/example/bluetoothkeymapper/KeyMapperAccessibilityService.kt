@@ -51,7 +51,9 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             Log.e(TAG, "映射模式: 媒体播放暂停键 + 双击屏幕映射")
             Log.e(TAG, "双击映射功能状态: ${if (isDoubleClickMappingEnabled) "开启" else "关闭"}")
             Log.i(TAG, "dpad left: 双击屏幕坐标(133,439)")
+            Log.i(TAG, "dpad down: 单击屏幕坐标(133,439)")
             Log.i(TAG, "dpad up: 点击CC按钮 (竖屏876,154 / 横屏2273,88)")
+            Log.i(TAG, "back key: 单击屏幕坐标(133,439)")
             Log.i(TAG, "请按下蓝牙遥控器按键进行测试")
             Log.i(TAG, "提示: 可在APP界面切换双击映射功能开关")
             android.util.Log.wtf(TAG, "最高级别日志：等待按键事件...")
@@ -147,6 +149,18 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                     Log.e(TAG, "执行点击CC按钮操作 - 打开/关闭YouTube CC字幕")
                     sendKeyC()
                     Log.e(TAG, "CC按钮点击操作完成")
+                }
+                return true // 拦截原始事件
+            }
+            
+            // 处理返回按键 - 映射为单击屏幕坐标(133,439)显示/隐藏控制器
+            KeyEvent.KEYCODE_BACK -> {  // 4 返回键
+                Log.e(TAG, "!!! 检测到返回按键: ${event.keyCode} !!!")
+                
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    Log.e(TAG, "执行单击屏幕坐标(133,439)操作 - 显示/隐藏控制器")
+                    performSingleClick(133f, 439f)
+                    Log.e(TAG, "单击操作完成")
                 }
                 return true // 拦截原始事件
             }
