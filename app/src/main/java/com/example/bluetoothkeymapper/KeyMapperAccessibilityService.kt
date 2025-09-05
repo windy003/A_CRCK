@@ -54,6 +54,8 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             Log.i(TAG, "dpad down: 单击屏幕坐标(133,439)")
             Log.i(TAG, "dpad up: 点击CC按钮 (竖屏876,154 / 横屏2273,88)")
             Log.i(TAG, "back key: 单击屏幕坐标(133,439)")
+            Log.i(TAG, "home key: 上一曲按键")
+            Log.i(TAG, "menu key: 下一曲按键")
             Log.i(TAG, "请按下蓝牙遥控器按键进行测试")
             Log.i(TAG, "提示: 可在APP界面切换双击映射功能开关")
             android.util.Log.wtf(TAG, "最高级别日志：等待按键事件...")
@@ -165,6 +167,30 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
             
+            // 处理home按键 - 映射为上一曲按键
+            KeyEvent.KEYCODE_HOME -> {  // 3 Home键
+                Log.e(TAG, "!!! 检测到Home按键: ${event.keyCode} !!!")
+                
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    Log.e(TAG, "执行上一曲操作")
+                    sendMediaPrevious()
+                    Log.e(TAG, "上一曲操作完成")
+                }
+                return true // 拦截原始事件
+            }
+            
+            // 处理menu按键 - 映射为下一曲按键
+            KeyEvent.KEYCODE_MENU -> {  // 82 Menu键
+                Log.e(TAG, "!!! 检测到Menu按键: ${event.keyCode} !!!")
+                
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    Log.e(TAG, "执行下一曲操作")
+                    sendMediaNext()
+                    Log.e(TAG, "下一曲操作完成")
+                }
+                return true // 拦截原始事件
+            }
+            
         }
         
         // 记录所有未处理的按键
@@ -199,6 +225,42 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             Log.e(TAG, "媒体按键发送结果: down=$result1, up=$result2")
         } catch (e: Exception) {
             Log.e(TAG, "发送媒体按键失败: ${e.message}")
+        }
+    }
+    
+    private fun sendMediaPrevious() {
+        try {
+            Log.e(TAG, "发送媒体上一曲按键...")
+            
+            val downEvent = KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PREVIOUS)
+            val upEvent = KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PREVIOUS)
+            
+            // 通过AudioManager发送媒体按键
+            val result1 = audioManager?.dispatchMediaKeyEvent(downEvent)
+            Thread.sleep(50)
+            val result2 = audioManager?.dispatchMediaKeyEvent(upEvent)
+            
+            Log.e(TAG, "媒体上一曲按键发送结果: down=$result1, up=$result2")
+        } catch (e: Exception) {
+            Log.e(TAG, "发送媒体上一曲按键失败: ${e.message}")
+        }
+    }
+    
+    private fun sendMediaNext() {
+        try {
+            Log.e(TAG, "发送媒体下一曲按键...")
+            
+            val downEvent = KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_NEXT)
+            val upEvent = KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_NEXT)
+            
+            // 通过AudioManager发送媒体按键
+            val result1 = audioManager?.dispatchMediaKeyEvent(downEvent)
+            Thread.sleep(50)
+            val result2 = audioManager?.dispatchMediaKeyEvent(upEvent)
+            
+            Log.e(TAG, "媒体下一曲按键发送结果: down=$result1, up=$result2")
+        } catch (e: Exception) {
+            Log.e(TAG, "发送媒体下一曲按键失败: ${e.message}")
         }
     }
     
