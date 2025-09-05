@@ -54,7 +54,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             Log.i(TAG, "dpad down: 单击屏幕坐标(133,439)")
             Log.i(TAG, "dpad up: 点击CC按钮 (竖屏876,154 / 横屏2273,88)")
             Log.i(TAG, "back key: 单击屏幕坐标(133,439)")
-            Log.i(TAG, "home key: 上一曲按键")
+            Log.i(TAG, "move home key (122): 上一曲按键")
             Log.i(TAG, "menu key: 下一曲按键")
             Log.i(TAG, "请按下蓝牙遥控器按键进行测试")
             Log.i(TAG, "提示: 可在APP界面切换双击映射功能开关")
@@ -168,8 +168,8 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             }
             
             // 处理home按键 - 映射为上一曲按键
-            KeyEvent.KEYCODE_HOME -> {  // 3 Home键
-                Log.e(TAG, "!!! 检测到Home按键: ${event.keyCode} !!!")
+            122 -> {  // 122 Move Home键（蓝牙遥控器的Home键）
+                Log.e(TAG, "!!! 检测到Move Home按键: ${event.keyCode} !!!")
                 
                 if (event.action == KeyEvent.ACTION_DOWN) {
                     Log.e(TAG, "执行上一曲操作")
