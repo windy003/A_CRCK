@@ -37,27 +37,47 @@ class MainActivity : AppCompatActivity() {
         private const val TAG = "MainActivity"
         private const val PREFS_NAME = "KeyMapperPrefs"
         private const val PREF_DOUBLE_CLICK_ENABLED = "double_click_mapping_enabled"
+        private const val PREF_TV_MODE_ENABLED = "tv_mode_enabled"
         private const val YOUTUBE_MODE_CHANGED_ACTION = "com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED"
+        private const val TV_MODE_CHANGED_ACTION = "com.example.bluetoothkeymapper.TV_MODE_CHANGED"
     }
     
     // 广播接收器监听磁贴状态变化
     private val tileStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == YOUTUBE_MODE_CHANGED_ACTION) {
-                val enabled = intent.getBooleanExtra("enabled", true)
-                Log.d(TAG, "收到磁贴状态变化广播: $enabled")
-                
-                // 更新开关状态，但不触发监听器
-                binding.switchDoubleClickMapping.setOnCheckedChangeListener(null)
-                binding.switchDoubleClickMapping.isChecked = enabled
-                
-                // 重新设置监听器
-                setSwitchListener()
-                
-                // 更新UI显示
-                updateMappingStatus(enabled)
-                
-                Log.d(TAG, "已同步磁贴状态到MainActivity开关: $enabled")
+            when (intent?.action) {
+                YOUTUBE_MODE_CHANGED_ACTION -> {
+                    val enabled = intent.getBooleanExtra("enabled", true)
+                    Log.d(TAG, "收到双击映射状态变化广播: $enabled")
+                    
+                    // 更新开关状态，但不触发监听器
+                    binding.switchDoubleClickMapping.setOnCheckedChangeListener(null)
+                    binding.switchDoubleClickMapping.isChecked = enabled
+                    
+                    // 重新设置监听器
+                    setSwitchListener()
+                    
+                    // 更新UI显示
+                    updateMappingStatus(enabled)
+                    
+                    Log.d(TAG, "已同步双击映射状态到MainActivity开关: $enabled")
+                }
+                TV_MODE_CHANGED_ACTION -> {
+                    val enabled = intent.getBooleanExtra("enabled", false)
+                    Log.d(TAG, "收到电视模式状态变化广播: $enabled")
+                    
+                    // 更新开关状态，但不触发监听器
+                    binding.switchTvMode.setOnCheckedChangeListener(null)
+                    binding.switchTvMode.isChecked = enabled
+                    
+                    // 重新设置监听器
+                    setTvModeSwitchListener()
+                    
+                    // 更新UI显示
+                    updateTvModeStatus(enabled)
+                    
+                    Log.d(TAG, "已同步电视模式状态到MainActivity开关: $enabled")
+                }
             }
         }
     }
@@ -154,8 +174,14 @@ class MainActivity : AppCompatActivity() {
         binding.switchDoubleClickMapping.isChecked = isDoubleClickEnabled
         updateMappingStatus(isDoubleClickEnabled)
         
+        // 设置电视模式开关
+        val isTvModeEnabled = sharedPreferences.getBoolean(PREF_TV_MODE_ENABLED, false)
+        binding.switchTvMode.isChecked = isTvModeEnabled
+        updateTvModeStatus(isTvModeEnabled)
+        
         // 设置开关监听器
         setSwitchListener()
+        setTvModeSwitchListener()
         
         // 注册广播接收器监听磁贴状态变化
         registerTileReceiver()
@@ -190,19 +216,51 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
+    private fun setTvModeSwitchListener() {
+        binding.switchTvMode.setOnCheckedChangeListener { _, isChecked ->
+            Log.d(TAG, "电视模式开关状态改变: $isChecked")
+            
+            // 保存状态
+            sharedPreferences.edit()
+                .putBoolean(PREF_TV_MODE_ENABLED, isChecked)
+                .apply()
+            
+            // 更新无障碍服务状态
+            KeyMapperAccessibilityService.instance?.setTvModeEnabled(isChecked)
+            
+            // 更新UI显示
+            updateTvModeStatus(isChecked)
+            
+            // 发送广播通知磁贴更新状态
+            val intent = Intent(TV_MODE_CHANGED_ACTION)
+            intent.putExtra("enabled", isChecked)
+            sendBroadcast(intent)
+            Log.d(TAG, "已发送电视模式状态变化广播")
+            
+            Toast.makeText(
+                this, 
+                if (isChecked) "电视模式已开启 - 使用20.5:9坐标" else "电视模式已关闭 - 使用正常坐标",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+    
     private fun registerTileReceiver() {
         if (!isReceiverRegistered) {
             try {
-                val filter = IntentFilter(YOUTUBE_MODE_CHANGED_ACTION)
+                val filter = IntentFilter().apply {
+                    addAction(YOUTUBE_MODE_CHANGED_ACTION)
+                    addAction(TV_MODE_CHANGED_ACTION)
+                }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     registerReceiver(tileStateReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
                 } else {
                     registerReceiver(tileStateReceiver, filter)
                 }
                 isReceiverRegistered = true
-                Log.d(TAG, "磁贴状态广播接收器注册成功")
+                Log.d(TAG, "状态广播接收器注册成功")
             } catch (e: Exception) {
-                Log.e(TAG, "注册磁贴状态广播接收器失败: ${e.message}")
+                Log.e(TAG, "注册状态广播接收器失败: ${e.message}")
             }
         }
     }
@@ -383,6 +441,10 @@ class MainActivity : AppCompatActivity() {
         // 同步双击映射状态
         val isDoubleClickEnabled = sharedPreferences.getBoolean(PREF_DOUBLE_CLICK_ENABLED, true)
         updateMappingStatus(isDoubleClickEnabled)
+        
+        // 同步电视模式状态
+        val isTvModeEnabled = sharedPreferences.getBoolean(PREF_TV_MODE_ENABLED, false)
+        updateTvModeStatus(isTvModeEnabled)
     }
     
     private fun updateMappingStatus(enabled: Boolean) {
@@ -393,6 +455,21 @@ class MainActivity : AppCompatActivity() {
         }
         
         binding.tvMappingStatus.setTextColor(
+            ContextCompat.getColor(
+                this,
+                if (enabled) android.R.color.holo_green_dark else android.R.color.holo_red_dark
+            )
+        )
+    }
+    
+    private fun updateTvModeStatus(enabled: Boolean) {
+        binding.tvTvModeStatus.text = if (enabled) {
+            "电视模式已开启 - 使用20.5:9全屏坐标(1740,95)"
+        } else {
+            "电视模式已关闭 - 使用正常点击位置"
+        }
+        
+        binding.tvTvModeStatus.setTextColor(
             ContextCompat.getColor(
                 this,
                 if (enabled) android.R.color.holo_green_dark else android.R.color.holo_red_dark
@@ -411,11 +488,21 @@ class MainActivity : AppCompatActivity() {
         // 同步SharedPreferences中的状态到开关，防止磁贴修改后不同步
         val currentState = sharedPreferences.getBoolean(PREF_DOUBLE_CLICK_ENABLED, true)
         if (binding.switchDoubleClickMapping.isChecked != currentState) {
-            Log.d(TAG, "onResume检测到状态不同步，更新开关状态: $currentState")
+            Log.d(TAG, "onResume检测到双击映射状态不同步，更新开关状态: $currentState")
             binding.switchDoubleClickMapping.setOnCheckedChangeListener(null)
             binding.switchDoubleClickMapping.isChecked = currentState
             setSwitchListener()
             updateMappingStatus(currentState)
+        }
+        
+        // 同步电视模式状态
+        val currentTvModeState = sharedPreferences.getBoolean(PREF_TV_MODE_ENABLED, false)
+        if (binding.switchTvMode.isChecked != currentTvModeState) {
+            Log.d(TAG, "onResume检测到电视模式状态不同步，更新开关状态: $currentTvModeState")
+            binding.switchTvMode.setOnCheckedChangeListener(null)
+            binding.switchTvMode.isChecked = currentTvModeState
+            setTvModeSwitchListener()
+            updateTvModeStatus(currentTvModeState)
         }
     }
     

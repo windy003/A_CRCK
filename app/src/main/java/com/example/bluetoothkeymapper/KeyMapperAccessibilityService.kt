@@ -16,6 +16,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     
     private var audioManager: AudioManager? = null
     private var isDoubleClickMappingEnabled = true // 双击映射功能开关，默认开启
+    private var isTvModeEnabled = false // 电视模式开关，默认关闭
     private var lastMediaPlayPauseTime = 0L // 上次播放/暂停按键时间戳
     
     companion object {
@@ -23,6 +24,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         var instance: KeyMapperAccessibilityService? = null
         private const val PREFS_NAME = "KeyMapperPrefs"
         private const val PREF_DOUBLE_CLICK_ENABLED = "double_click_mapping_enabled"
+        private const val PREF_TV_MODE_ENABLED = "tv_mode_enabled"
     }
     
     override fun onCreate() {
@@ -33,9 +35,11 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         // 从SharedPreferences读取初始状态
         val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         isDoubleClickMappingEnabled = sharedPreferences.getBoolean(PREF_DOUBLE_CLICK_ENABLED, true)
+        isTvModeEnabled = sharedPreferences.getBoolean(PREF_TV_MODE_ENABLED, false)
         
         Log.d(TAG, "无障碍服务已创建")
         Log.d(TAG, "双击映射初始状态: ${if (isDoubleClickMappingEnabled) "开启" else "关闭"}")
+        Log.d(TAG, "电视模式初始状态: ${if (isTvModeEnabled) "开启" else "关闭"}")
     }
     
     override fun onServiceConnected() {
@@ -268,23 +272,31 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         try {
             Log.e(TAG, "模拟点击CC按钮...")
             
-            // 检测屏幕方向
-            val orientation = resources.configuration.orientation
-            val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
-            
-            // 根据屏幕方向选择对应的坐标
+            // 根据电视模式状态选择坐标
             val x: Float
             val y: Float
-            if (isPortrait) {
-                // 竖屏坐标
-                x = 876f
-                y = 154f
-                Log.e(TAG, "检测到竖屏模式，使用坐标: ($x, $y)")
+            
+            if (isTvModeEnabled) {
+                // 电视模式：使用固定的电视坐标 (20.5:9 全屏模式)
+                x = 1740f
+                y = 95f
+                Log.e(TAG, "电视模式已启用，使用电视坐标: ($x, $y)")
             } else {
-                // 横屏坐标
-                x = 2273f
-                y = 88f
-                Log.e(TAG, "检测到横屏模式，使用坐标: ($x, $y)")
+                // 正常模式：检测屏幕方向选择对应的坐标
+                val orientation = resources.configuration.orientation
+                val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+                
+                if (isPortrait) {
+                    // 竖屏坐标
+                    x = 876f
+                    y = 154f
+                    Log.e(TAG, "正常模式 - 检测到竖屏，使用坐标: ($x, $y)")
+                } else {
+                    // 横屏坐标
+                    x = 2273f
+                    y = 88f
+                    Log.e(TAG, "正常模式 - 检测到横屏，使用坐标: ($x, $y)")
+                }
             }
             
             // 执行单击CC按钮
@@ -444,6 +456,37 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     
     fun isDoubleClickMappingEnabled(): Boolean {
         return isDoubleClickMappingEnabled
+    }
+    
+    fun setTvModeEnabled(enabled: Boolean) {
+        isTvModeEnabled = enabled
+        val status = if (isTvModeEnabled) "开启" else "关闭"
+        
+        Log.e(TAG, "=== 电视模式功能状态更新 ===")
+        Log.e(TAG, "当前状态: $status")
+        Log.e(TAG, "dpad up键映射: ${if (isTvModeEnabled) "点击CC按钮 电视坐标(1740,95)" else "点击CC按钮 正常坐标"}")
+        Log.e(TAG, "===============================")
+        
+        // 使用Android系统通知样式的日志
+        android.util.Log.wtf(TAG, "📺 电视模式功能已$status")
+        
+        // 通知所有监听器状态变化
+        notifyTvModeChanged(enabled)
+    }
+    
+    private fun notifyTvModeChanged(enabled: Boolean) {
+        try {
+            val intent = Intent("com.example.bluetoothkeymapper.TV_MODE_CHANGED")
+            intent.putExtra("enabled", enabled)
+            sendBroadcast(intent)
+            Log.d(TAG, "已发送电视模式状态变化广播: $enabled")
+        } catch (e: Exception) {
+            Log.e(TAG, "发送电视模式状态变化广播失败: ${e.message}")
+        }
+    }
+    
+    fun isTvModeEnabled(): Boolean {
+        return isTvModeEnabled
     }
     
     override fun onDestroy() {

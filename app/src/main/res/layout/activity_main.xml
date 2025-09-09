@@ -123,6 +123,38 @@
         android:text="状态: 双击映射已开启"
         android:textSize="14sp"
         android:textColor="@android:color/holo_green_dark"
+        android:layout_marginBottom="16dp" />
+
+    <!-- 电视模式开关区域 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="电视模式 (20.5:9 比例)"
+            android:textSize="16sp" />
+
+        <Switch
+            android:id="@+id/switchTvMode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="false" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvTvModeStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="电视模式已关闭 - 使用正常点击位置"
+        android:textSize="14sp"
+        android:textColor="@android:color/holo_red_dark"
         android:layout_marginBottom="24dp" />
 
     <TextView
