@@ -239,7 +239,7 @@ class MainActivity : AppCompatActivity() {
             
             Toast.makeText(
                 this, 
-                if (isChecked) "电视模式已开启 - 使用20.5:9坐标" else "电视模式已关闭 - 使用正常坐标",
+                if (isChecked) "电视模式已开启 - 使用16:9坐标" else "电视模式已关闭 - 使用正常坐标",
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -464,7 +464,7 @@ class MainActivity : AppCompatActivity() {
     
     private fun updateTvModeStatus(enabled: Boolean) {
         binding.tvTvModeStatus.text = if (enabled) {
-            "电视模式已开启 - 使用20.5:9全屏坐标(1740,95)"
+            "电视模式已开启 - 使用16:9全屏坐标"
         } else {
             "电视模式已关闭 - 使用正常点击位置"
         }

@@ -145,15 +145,15 @@ class TvModeToggleTileService : TileService() {
             
             // 更新磁贴状态
             tile.state = if (isEnabled) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-            tile.label = "20.5:9模式"
+            tile.label = "电视模式"
             
             // 根据API级别设置副标题
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 tile.subtitle = if (isEnabled) "电视模式已开启" else "电视模式已关闭"
             }
             
-            // 设置图标 - 使用数字2
-            tile.icon = createNumberTwoIcon()
+            // 设置图标 - 使用字母d
+            tile.icon = createLetterDIcon()
             
             // 更新磁贴显示
             tile.updateTile()
@@ -166,7 +166,7 @@ class TvModeToggleTileService : TileService() {
         }
     }
     
-    private fun createNumberTwoIcon(): Icon {
+    private fun createLetterDIcon(): Icon {
         val size = 64 // 图标大小
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
@@ -180,10 +180,10 @@ class TvModeToggleTileService : TileService() {
             textAlign = Paint.Align.CENTER
         }
         
-        // 在画布中央绘制数字2
+        // 在画布中央绘制字母D
         val centerX = size / 2f
         val centerY = size / 2f + paint.textSize / 3f // 稍微向下偏移以居中
-        canvas.drawText("2", centerX, centerY, paint)
+        canvas.drawText("D", centerX, centerY, paint)
         
         return Icon.createWithBitmap(bitmap)
     }
