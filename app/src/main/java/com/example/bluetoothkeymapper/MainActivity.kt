@@ -41,6 +41,7 @@ class MainActivity : AppCompatActivity() {
         private const val PREF_SERVICE_ENABLED = "service_enabled"
         private const val YOUTUBE_MODE_CHANGED_ACTION = "com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED"
         private const val TV_MODE_CHANGED_ACTION = "com.example.bluetoothkeymapper.TV_MODE_CHANGED"
+        private const val MAIN_TOGGLE_CHANGED_ACTION = "com.example.bluetoothkeymapper.MAIN_TOGGLE_CHANGED"
     }
     
     // 广播接收器监听磁贴状态变化
@@ -50,34 +51,45 @@ class MainActivity : AppCompatActivity() {
                 YOUTUBE_MODE_CHANGED_ACTION -> {
                     val enabled = intent.getBooleanExtra("enabled", true)
                     Log.d(TAG, "收到双击映射状态变化广播: $enabled")
-                    
+
                     // 更新开关状态，但不触发监听器
                     binding.switchDoubleClickMapping.setOnCheckedChangeListener(null)
                     binding.switchDoubleClickMapping.isChecked = enabled
-                    
+
                     // 重新设置监听器
                     setSwitchListener()
-                    
+
                     // 更新UI显示
                     updateMappingStatus(enabled)
-                    
+
                     Log.d(TAG, "已同步双击映射状态到MainActivity开关: $enabled")
                 }
                 TV_MODE_CHANGED_ACTION -> {
                     val enabled = intent.getBooleanExtra("enabled", false)
                     Log.d(TAG, "收到电视模式状态变化广播: $enabled")
-                    
+
                     // 更新开关状态，但不触发监听器
                     binding.switchTvMode.setOnCheckedChangeListener(null)
                     binding.switchTvMode.isChecked = enabled
-                    
+
                     // 重新设置监听器
                     setTvModeSwitchListener()
-                    
+
                     // 更新UI显示
                     updateTvModeStatus(enabled)
-                    
+
                     Log.d(TAG, "已同步电视模式状态到MainActivity开关: $enabled")
+                }
+                MAIN_TOGGLE_CHANGED_ACTION -> {
+                    val enabled = intent.getBooleanExtra("enabled", false)
+                    Log.d(TAG, "收到总开关状态变化广播: $enabled")
+
+                    // 同步服务状态
+                    isServiceRunning = enabled
+                    updateServiceButton()
+                    updateUI()
+
+                    Log.d(TAG, "已同步总开关状态到MainActivity: $enabled")
                 }
             }
         }
@@ -252,6 +264,7 @@ class MainActivity : AppCompatActivity() {
                 val filter = IntentFilter().apply {
                     addAction(YOUTUBE_MODE_CHANGED_ACTION)
                     addAction(TV_MODE_CHANGED_ACTION)
+                    addAction(MAIN_TOGGLE_CHANGED_ACTION)
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     registerReceiver(tileStateReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
@@ -377,6 +390,12 @@ class MainActivity : AppCompatActivity() {
                 .apply()
             Log.d(TAG, "已保存服务启动状态")
 
+            // 发送广播通知总开关磁贴更新状态
+            val broadcastIntent = Intent(MAIN_TOGGLE_CHANGED_ACTION)
+            broadcastIntent.putExtra("enabled", true)
+            sendBroadcast(broadcastIntent)
+            Log.d(TAG, "已发送总开关状态变化广播给磁贴")
+
             Toast.makeText(this, "服务已启动", Toast.LENGTH_SHORT).show()
             updateServiceButton()
             updateUI()
@@ -397,6 +416,12 @@ class MainActivity : AppCompatActivity() {
             .putBoolean(PREF_SERVICE_ENABLED, false)
             .apply()
         Log.d(TAG, "已保存服务停止状态")
+
+        // 发送广播通知总开关磁贴更新状态
+        val broadcastIntent = Intent(MAIN_TOGGLE_CHANGED_ACTION)
+        broadcastIntent.putExtra("enabled", false)
+        sendBroadcast(broadcastIntent)
+        Log.d(TAG, "已发送总开关状态变化广播给磁贴")
 
         Toast.makeText(this, "服务已停止", Toast.LENGTH_SHORT).show()
         updateServiceButton()
