@@ -1,5 +1,6 @@
 package com.example.bluetoothkeymapper
 
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -157,6 +158,7 @@ class MainToggleTileService : TileService() {
 
             // 设置图标 - 使用字母Z
             tile.icon = createLetterZIcon()
+
 
             // 更新磁贴显示
             tile.updateTile()
