@@ -38,6 +38,7 @@ class MainActivity : AppCompatActivity() {
         private const val PREFS_NAME = "KeyMapperPrefs"
         private const val PREF_DOUBLE_CLICK_ENABLED = "double_click_mapping_enabled"
         private const val PREF_TV_MODE_ENABLED = "tv_mode_enabled"
+        private const val PREF_SERVICE_ENABLED = "service_enabled"
         private const val YOUTUBE_MODE_CHANGED_ACTION = "com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED"
         private const val TV_MODE_CHANGED_ACTION = "com.example.bluetoothkeymapper.TV_MODE_CHANGED"
     }
@@ -280,16 +281,38 @@ class MainActivity : AppCompatActivity() {
     private fun checkServiceRunningState() {
         try {
             val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            var serviceActuallyRunning = false
+
             for (service in activityManager.getRunningServices(Integer.MAX_VALUE)) {
                 if (BluetoothKeyService::class.java.name == service.service.className) {
-                    isServiceRunning = true
-                    Log.d(TAG, "检测到服务正在运行")
-                    updateServiceButton()
-                    return
+                    serviceActuallyRunning = true
+                    break
                 }
             }
-            isServiceRunning = false
-            Log.d(TAG, "服务未运行")
+
+            // 检查用户上次是否主动启动了服务
+            val wasServiceEnabledByUser = sharedPreferences.getBoolean(PREF_SERVICE_ENABLED, false)
+
+            if (serviceActuallyRunning && !wasServiceEnabledByUser) {
+                // 服务在运行但用户上次关闭了它，停止服务
+                Log.d(TAG, "检测到服务在运行但用户上次已关闭，自动停止服务")
+                val intent = Intent(this, BluetoothKeyService::class.java)
+                stopService(intent)
+                isServiceRunning = false
+            } else if (serviceActuallyRunning && wasServiceEnabledByUser) {
+                // 服务在运行且用户上次启动了它
+                Log.d(TAG, "检测到服务正在运行且用户上次已启动")
+                isServiceRunning = true
+            } else if (!serviceActuallyRunning && wasServiceEnabledByUser) {
+                // 服务没运行但用户上次启动了它，可能需要重启（但这里不自动重启，让用户手动点击）
+                Log.d(TAG, "用户上次启动了服务但服务未运行，等待用户手动启动")
+                isServiceRunning = false
+            } else {
+                // 服务没运行且用户上次也没启动
+                Log.d(TAG, "服务未运行，用户上次未启动")
+                isServiceRunning = false
+            }
+
             updateServiceButton()
         } catch (e: Exception) {
             Log.e(TAG, "检查服务运行状态失败: ${e.message}")
@@ -345,8 +368,15 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, BluetoothKeyService::class.java)
             startService(intent)
             bluetoothKeyService?.startBluetoothScanning()
-            
+
             isServiceRunning = true
+
+            // 保存服务启动状态
+            sharedPreferences.edit()
+                .putBoolean(PREF_SERVICE_ENABLED, true)
+                .apply()
+            Log.d(TAG, "已保存服务启动状态")
+
             Toast.makeText(this, "服务已启动", Toast.LENGTH_SHORT).show()
             updateServiceButton()
             updateUI()
@@ -359,8 +389,15 @@ class MainActivity : AppCompatActivity() {
     private fun stopBluetoothService() {
         val intent = Intent(this, BluetoothKeyService::class.java)
         stopService(intent)
-        
+
         isServiceRunning = false
+
+        // 保存服务停止状态
+        sharedPreferences.edit()
+            .putBoolean(PREF_SERVICE_ENABLED, false)
+            .apply()
+        Log.d(TAG, "已保存服务停止状态")
+
         Toast.makeText(this, "服务已停止", Toast.LENGTH_SHORT).show()
         updateServiceButton()
         updateUI()
