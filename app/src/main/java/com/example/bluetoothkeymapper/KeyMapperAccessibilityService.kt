@@ -194,11 +194,31 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             // 处理menu按键 - 映射为下一曲按键
             KeyEvent.KEYCODE_MENU -> {  // 82 Menu键
                 Log.e(TAG, "!!! 检测到Menu按键: ${event.keyCode} !!!")
-                
+
                 if (event.action == KeyEvent.ACTION_DOWN) {
                     Log.e(TAG, "执行下一曲操作")
                     sendMediaNext()
                     Log.e(TAG, "下一曲操作完成")
+                }
+                return true // 拦截原始事件
+            }
+
+            // 处理F5键(语音键) - 在横屏状态下点击坐标(545,104)，竖屏状态下忽略
+            135 -> {  // 135 F5键（蓝牙遥控器的语音键）
+                Log.e(TAG, "!!! 检测到F5语音键: ${event.keyCode} !!!")
+
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    Log.e(TAG, "检测屏幕方向...")
+                    val orientation = resources.configuration.orientation
+                    val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+
+                    if (isPortrait) {
+                        Log.e(TAG, "当前为竖屏状态，忽略F5键操作")
+                    } else {
+                        Log.e(TAG, "当前为横屏状态，执行点击坐标(545,104)操作")
+                        performSingleClick(545f, 104f)
+                        Log.e(TAG, "F5键横屏点击操作完成")
+                    }
                 }
                 return true // 拦截原始事件
             }
