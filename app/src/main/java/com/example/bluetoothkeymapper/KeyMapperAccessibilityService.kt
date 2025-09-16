@@ -56,7 +56,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             Log.e(TAG, "双击映射功能状态: ${if (isDoubleClickMappingEnabled) "开启" else "关闭"}")
             Log.i(TAG, "dpad left: 双击屏幕坐标(133,439)")
             Log.i(TAG, "dpad down: 点击CC按钮 (竖屏876,154 / 横屏2273,88)")
-            Log.i(TAG, "dpad up: 单击屏幕坐标(133,439)")
+            Log.i(TAG, "dpad up: 单击屏幕坐标(520,107) - 仅横屏模式")
             Log.i(TAG, "back key: 单击屏幕坐标(133,439)")
             Log.i(TAG, "move home key (122): 上一曲按键")
             Log.i(TAG, "menu key: 下一曲按键")
@@ -147,14 +147,22 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
 
-            // 处理dpad up键 - 映射为单击屏幕坐标(133,439)显示/隐藏控制器
+            // 处理dpad up键 - 映射为单击屏幕坐标(520,107)，只在横屏模式下生效
             KeyEvent.KEYCODE_DPAD_UP -> {  // 19 方向键上
                 Log.e(TAG, "!!! 检测到dpad up按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    Log.e(TAG, "执行单击屏幕坐标(133,439)操作 - 显示/隐藏控制器")
-                    performSingleClick(133f, 439f)
-                    Log.e(TAG, "单击操作完成")
+                    // 检查屏幕方向，只在横屏模式下执行
+                    val orientation = resources.configuration.orientation
+                    val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+                    if (isLandscape) {
+                        Log.e(TAG, "横屏模式 - 执行单击屏幕坐标(520,107)操作")
+                        performSingleClick(520f, 107f)
+                        Log.e(TAG, "单击操作完成")
+                    } else {
+                        Log.w(TAG, "竖屏模式 - 上方向键功能已禁用，只在横屏模式下生效")
+                    }
                 }
                 return true // 拦截原始事件
             }
