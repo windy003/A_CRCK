@@ -215,8 +215,8 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                     if (isPortrait) {
                         Log.e(TAG, "当前为竖屏状态，忽略F5键操作")
                     } else {
-                        Log.e(TAG, "当前为横屏状态，执行点击坐标(545,104)操作")
-                        performSingleClick(545f, 104f)
+                        Log.e(TAG, "当前为横屏状态，执行点击坐标(2402,74)操作")
+                        performSingleClick(2402f, 74f)
                         Log.e(TAG, "F5键横屏点击操作完成")
                     }
                 }
