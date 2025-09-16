@@ -55,8 +55,8 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             Log.e(TAG, "映射模式: 媒体播放暂停键 + 双击屏幕映射")
             Log.e(TAG, "双击映射功能状态: ${if (isDoubleClickMappingEnabled) "开启" else "关闭"}")
             Log.i(TAG, "dpad left: 双击屏幕坐标(133,439)")
-            Log.i(TAG, "dpad down: 单击屏幕坐标(133,439)")
-            Log.i(TAG, "dpad up: 点击CC按钮 (竖屏876,154 / 横屏2273,88)")
+            Log.i(TAG, "dpad down: 点击CC按钮 (竖屏876,154 / 横屏2273,88)")
+            Log.i(TAG, "dpad up: 单击屏幕坐标(133,439)")
             Log.i(TAG, "back key: 单击屏幕坐标(133,439)")
             Log.i(TAG, "move home key (122): 上一曲按键")
             Log.i(TAG, "menu key: 下一曲按键")
@@ -135,26 +135,26 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 }
             }
             
-            // 处理dpad down键 - 映射为单击屏幕坐标(133,439)显示/隐藏控制器
+            // 处理dpad down键 - 映射为按键c，用于打开/关闭YouTube CC字幕
             KeyEvent.KEYCODE_DPAD_DOWN -> {  // 20 方向键下
                 Log.e(TAG, "!!! 检测到dpad down按键: ${event.keyCode} !!!")
-                
-                if (event.action == KeyEvent.ACTION_DOWN) {
-                    Log.e(TAG, "执行单击屏幕坐标(133,439)操作 - 显示/隐藏控制器")
-                    performSingleClick(133f, 439f)
-                    Log.e(TAG, "单击操作完成")
-                }
-                return true // 拦截原始事件
-            }
-            
-            // 处理dpad up键 - 映射为按键c，用于打开/关闭YouTube CC字幕
-            KeyEvent.KEYCODE_DPAD_UP -> {  // 19 方向键上
-                Log.e(TAG, "!!! 检测到dpad up按键: ${event.keyCode} !!!")
-                
+
                 if (event.action == KeyEvent.ACTION_DOWN) {
                     Log.e(TAG, "执行点击CC按钮操作 - 打开/关闭YouTube CC字幕")
                     sendKeyC()
                     Log.e(TAG, "CC按钮点击操作完成")
+                }
+                return true // 拦截原始事件
+            }
+
+            // 处理dpad up键 - 映射为单击屏幕坐标(133,439)显示/隐藏控制器
+            KeyEvent.KEYCODE_DPAD_UP -> {  // 19 方向键上
+                Log.e(TAG, "!!! 检测到dpad up按键: ${event.keyCode} !!!")
+
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    Log.e(TAG, "执行单击屏幕坐标(133,439)操作 - 显示/隐藏控制器")
+                    performSingleClick(133f, 439f)
+                    Log.e(TAG, "单击操作完成")
                 }
                 return true // 拦截原始事件
             }
@@ -464,7 +464,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         
         Log.e(TAG, "=== 电视模式功能状态更新 ===")
         Log.e(TAG, "当前状态: $status")
-        Log.e(TAG, "dpad up键映射: ${if (isTvModeEnabled) "点击CC按钮 电视坐标(1740,95)" else "点击CC按钮 正常坐标"}")
+        Log.e(TAG, "dpad down键映射: ${if (isTvModeEnabled) "点击CC按钮 电视坐标(1740,95)" else "点击CC按钮 正常坐标"}")
         Log.e(TAG, "===============================")
         
         // 使用Android系统通知样式的日志
