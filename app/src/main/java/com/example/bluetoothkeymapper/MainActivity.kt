@@ -38,9 +38,11 @@ class MainActivity : AppCompatActivity() {
         private const val PREFS_NAME = "KeyMapperPrefs"
         private const val PREF_DOUBLE_CLICK_ENABLED = "double_click_mapping_enabled"
         private const val PREF_TV_MODE_ENABLED = "tv_mode_enabled"
+        private const val PREF_BAIDU_MODE_ENABLED = "baidu_mode_enabled"
         private const val PREF_SERVICE_ENABLED = "service_enabled"
         private const val YOUTUBE_MODE_CHANGED_ACTION = "com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED"
         private const val TV_MODE_CHANGED_ACTION = "com.example.bluetoothkeymapper.TV_MODE_CHANGED"
+        private const val BAIDU_MODE_CHANGED_ACTION = "com.example.bluetoothkeymapper.BAIDU_MODE_CHANGED"
         private const val MAIN_TOGGLE_CHANGED_ACTION = "com.example.bluetoothkeymapper.MAIN_TOGGLE_CHANGED"
     }
     
@@ -90,6 +92,22 @@ class MainActivity : AppCompatActivity() {
                     updateUI()
 
                     Log.d(TAG, "已同步总开关状态到MainActivity: $enabled")
+                }
+                BAIDU_MODE_CHANGED_ACTION -> {
+                    val enabled = intent.getBooleanExtra("enabled", false)
+                    Log.d(TAG, "收到百度网盘模式状态变化广播: $enabled")
+
+                    // 更新开关状态，但不触发监听器
+                    binding.switchBaiduMode.setOnCheckedChangeListener(null)
+                    binding.switchBaiduMode.isChecked = enabled
+
+                    // 重新设置监听器
+                    setBaiduModeSwitchListener()
+
+                    // 更新UI显示
+                    updateBaiduModeStatus(enabled)
+
+                    Log.d(TAG, "已同步百度网盘模式状态到MainActivity开关: $enabled")
                 }
             }
         }
@@ -191,10 +209,16 @@ class MainActivity : AppCompatActivity() {
         val isTvModeEnabled = sharedPreferences.getBoolean(PREF_TV_MODE_ENABLED, false)
         binding.switchTvMode.isChecked = isTvModeEnabled
         updateTvModeStatus(isTvModeEnabled)
-        
+
+        // 设置百度网盘模式开关
+        val isBaiduModeEnabled = sharedPreferences.getBoolean(PREF_BAIDU_MODE_ENABLED, false)
+        binding.switchBaiduMode.isChecked = isBaiduModeEnabled
+        updateBaiduModeStatus(isBaiduModeEnabled)
+
         // 设置开关监听器
         setSwitchListener()
         setTvModeSwitchListener()
+        setBaiduModeSwitchListener()
         
         // 注册广播接收器监听磁贴状态变化
         registerTileReceiver()
@@ -264,6 +288,7 @@ class MainActivity : AppCompatActivity() {
                 val filter = IntentFilter().apply {
                     addAction(YOUTUBE_MODE_CHANGED_ACTION)
                     addAction(TV_MODE_CHANGED_ACTION)
+                    addAction(BAIDU_MODE_CHANGED_ACTION)
                     addAction(MAIN_TOGGLE_CHANGED_ACTION)
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -507,6 +532,10 @@ class MainActivity : AppCompatActivity() {
         // 同步电视模式状态
         val isTvModeEnabled = sharedPreferences.getBoolean(PREF_TV_MODE_ENABLED, false)
         updateTvModeStatus(isTvModeEnabled)
+
+        // 同步百度网盘模式状态
+        val isBaiduModeEnabled = sharedPreferences.getBoolean(PREF_BAIDU_MODE_ENABLED, false)
+        updateBaiduModeStatus(isBaiduModeEnabled)
     }
     
     private fun updateMappingStatus(enabled: Boolean) {
@@ -530,8 +559,52 @@ class MainActivity : AppCompatActivity() {
         } else {
             "电视模式已关闭 - 使用正常点击位置"
         }
-        
+
         binding.tvTvModeStatus.setTextColor(
+            ContextCompat.getColor(
+                this,
+                if (enabled) android.R.color.holo_green_dark else android.R.color.holo_red_dark
+            )
+        )
+    }
+
+    private fun setBaiduModeSwitchListener() {
+        binding.switchBaiduMode.setOnCheckedChangeListener { _, isChecked ->
+            Log.d(TAG, "百度网盘模式开关状态改变: $isChecked")
+
+            // 保存状态
+            sharedPreferences.edit()
+                .putBoolean(PREF_BAIDU_MODE_ENABLED, isChecked)
+                .apply()
+
+            // 更新无障碍服务状态
+            KeyMapperAccessibilityService.instance?.setBaiduModeEnabled(isChecked)
+
+            // 更新UI显示
+            updateBaiduModeStatus(isChecked)
+
+            // 发送广播通知磁贴更新状态
+            val intent = Intent(BAIDU_MODE_CHANGED_ACTION)
+            intent.putExtra("enabled", isChecked)
+            sendBroadcast(intent)
+            Log.d(TAG, "已发送百度网盘模式状态变化广播")
+
+            Toast.makeText(
+                this,
+                if (isChecked) "百度网盘模式已开启" else "百度网盘模式已关闭",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun updateBaiduModeStatus(enabled: Boolean) {
+        binding.tvBaiduModeStatus.text = if (enabled) {
+            "百度网盘模式已开启 - OK键播放/暂停，左右键上一曲/下一曲"
+        } else {
+            "百度网盘模式已关闭"
+        }
+
+        binding.tvBaiduModeStatus.setTextColor(
             ContextCompat.getColor(
                 this,
                 if (enabled) android.R.color.holo_green_dark else android.R.color.holo_red_dark
@@ -565,6 +638,16 @@ class MainActivity : AppCompatActivity() {
             binding.switchTvMode.isChecked = currentTvModeState
             setTvModeSwitchListener()
             updateTvModeStatus(currentTvModeState)
+        }
+
+        // 同步百度网盘模式状态
+        val currentBaiduModeState = sharedPreferences.getBoolean(PREF_BAIDU_MODE_ENABLED, false)
+        if (binding.switchBaiduMode.isChecked != currentBaiduModeState) {
+            Log.d(TAG, "onResume检测到百度网盘模式状态不同步，更新开关状态: $currentBaiduModeState")
+            binding.switchBaiduMode.setOnCheckedChangeListener(null)
+            binding.switchBaiduMode.isChecked = currentBaiduModeState
+            setBaiduModeSwitchListener()
+            updateBaiduModeStatus(currentBaiduModeState)
         }
     }
     

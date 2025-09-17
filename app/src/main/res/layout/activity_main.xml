@@ -160,12 +160,44 @@
         android:text="电视模式已关闭 - 使用正常点击位置"
         android:textSize="14sp"
         android:textColor="@android:color/holo_red_dark"
+        android:layout_marginBottom="16dp" />
+
+    <!-- 百度网盘模式开关区域 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="百度网盘模式"
+            android:textSize="16sp" />
+
+        <Switch
+            android:id="@+id/switchBaiduMode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="false" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvBaiduModeStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="百度网盘模式已关闭"
+        android:textSize="14sp"
+        android:textColor="@android:color/holo_red_dark"
         android:layout_marginBottom="24dp" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="使用说明：\n1. 确保蓝牙已启用并配对遥控器\n2. 授予所需权限\n3. 在设置中启用无障碍服务\n4. 启动服务\n5. 按遥控器OK键映射为媒体播放/暂停\n6. 按遥控器左方向键双击屏幕后退5秒（可开关）"
+        android:text="使用说明：\n1. 确保蓝牙已启用并配对遥控器\n2. 授予所需权限\n3. 在设置中启用无障碍服务\n4. 启动服务\n5. 按遥控器OK键映射为媒体播放/暂停\n6. 按遥控器左方向键双击屏幕后退5秒（可开关）\n7. 百度网盘模式：OK键播放/暂停，左右键上一曲/下一曲"
         android:textSize="14sp"
         android:layout_marginTop="16dp"
         android:background="@android:color/background_light"

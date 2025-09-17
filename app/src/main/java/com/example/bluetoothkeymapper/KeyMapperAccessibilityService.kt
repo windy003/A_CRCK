@@ -17,6 +17,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     private var audioManager: AudioManager? = null
     private var isDoubleClickMappingEnabled = true // 双击映射功能开关，默认开启
     private var isTvModeEnabled = false // 电视模式开关，默认关闭
+    private var isBaiduModeEnabled = false // 百度网盘模式开关，默认关闭
     private var lastMediaPlayPauseTime = 0L // 上次播放/暂停按键时间戳
     
     companion object {
@@ -25,6 +26,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         private const val PREFS_NAME = "KeyMapperPrefs"
         private const val PREF_DOUBLE_CLICK_ENABLED = "double_click_mapping_enabled"
         private const val PREF_TV_MODE_ENABLED = "tv_mode_enabled"
+        private const val PREF_BAIDU_MODE_ENABLED = "baidu_mode_enabled"
     }
     
     override fun onCreate() {
@@ -36,10 +38,12 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         isDoubleClickMappingEnabled = sharedPreferences.getBoolean(PREF_DOUBLE_CLICK_ENABLED, true)
         isTvModeEnabled = sharedPreferences.getBoolean(PREF_TV_MODE_ENABLED, false)
+        isBaiduModeEnabled = sharedPreferences.getBoolean(PREF_BAIDU_MODE_ENABLED, false)
         
         Log.d(TAG, "无障碍服务已创建")
         Log.d(TAG, "双击映射初始状态: ${if (isDoubleClickMappingEnabled) "开启" else "关闭"}")
         Log.d(TAG, "电视模式初始状态: ${if (isTvModeEnabled) "开启" else "关闭"}")
+        Log.d(TAG, "百度网盘模式初始状态: ${if (isBaiduModeEnabled) "开启" else "关闭"}")
     }
     
     override fun onServiceConnected() {
@@ -119,20 +123,27 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
             
-            // 处理dpad left键 - 映射为双击屏幕坐标(133,439)实现YouTube后退5秒
+            // 处理dpad left键 - 根据模式进行不同映射
             KeyEvent.KEYCODE_DPAD_LEFT -> {  // 21 方向键左
                 Log.e(TAG, "!!! 检测到dpad left按键: ${event.keyCode} !!!")
-                
-                if (isDoubleClickMappingEnabled) {
-                    if (event.action == KeyEvent.ACTION_DOWN) {
-                        Log.e(TAG, "执行双击屏幕坐标(133,439)操作")
+
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    if (isBaiduModeEnabled) {
+                        Log.e(TAG, "百度网盘模式 - 执行上一曲操作")
+                        sendMediaPrevious()
+                        Log.e(TAG, "上一曲操作完成")
+                        return true
+                    } else if (isDoubleClickMappingEnabled) {
+                        Log.e(TAG, "普通模式 - 执行双击屏幕坐标(133,439)操作")
                         performDoubleClick(133f, 439f)
                         Log.e(TAG, "双击操作完成")
+                        return true
+                    } else {
+                        Log.w(TAG, "双击映射功能已关闭，恢复左方向键原有功能")
+                        return super.onKeyEvent(event) // 不拦截，让系统处理原有功能
                     }
-                    return true // 只在映射开启时拦截原始事件
                 } else {
-                    Log.w(TAG, "双击映射功能已关闭，恢复左方向键原有功能")
-                    return super.onKeyEvent(event) // 不拦截，让系统处理原有功能
+                    return if (isBaiduModeEnabled || isDoubleClickMappingEnabled) true else super.onKeyEvent(event)
                 }
             }
             
@@ -204,23 +215,29 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
 
-            // 处理dpad right键 - 根据屏幕方向双击不同坐标实现快进功能
+            // 处理dpad right键 - 根据模式进行不同映射
             KeyEvent.KEYCODE_DPAD_RIGHT -> {  // 22 方向键右
                 Log.e(TAG, "!!! 检测到dpad right按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    // 检查屏幕方向，选择对应的坐标
-                    val orientation = resources.configuration.orientation
-                    val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
-
-                    if (isPortrait) {
-                        Log.e(TAG, "竖屏模式 - 执行双击屏幕坐标(810,265)操作")
-                        performDoubleClick(810f, 265f)
-                        Log.e(TAG, "竖屏模式双击操作完成")
+                    if (isBaiduModeEnabled) {
+                        Log.e(TAG, "百度网盘模式 - 执行下一曲操作")
+                        sendMediaNext()
+                        Log.e(TAG, "下一曲操作完成")
                     } else {
-                        Log.e(TAG, "横屏模式 - 执行双击屏幕坐标(1940,384)操作")
-                        performDoubleClick(1940f, 384f)
-                        Log.e(TAG, "横屏模式双击操作完成")
+                        // 普通模式：根据屏幕方向双击不同坐标实现快进功能
+                        val orientation = resources.configuration.orientation
+                        val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+
+                        if (isPortrait) {
+                            Log.e(TAG, "普通模式竖屏 - 执行双击屏幕坐标(810,265)操作")
+                            performDoubleClick(810f, 265f)
+                            Log.e(TAG, "竖屏模式双击操作完成")
+                        } else {
+                            Log.e(TAG, "普通模式横屏 - 执行双击屏幕坐标(1940,384)操作")
+                            performDoubleClick(1940f, 384f)
+                            Log.e(TAG, "横屏模式双击操作完成")
+                        }
                     }
                 }
                 return true // 拦截原始事件
@@ -538,6 +555,38 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     
     fun isTvModeEnabled(): Boolean {
         return isTvModeEnabled
+    }
+
+    fun setBaiduModeEnabled(enabled: Boolean) {
+        isBaiduModeEnabled = enabled
+        val status = if (isBaiduModeEnabled) "开启" else "关闭"
+
+        Log.e(TAG, "=== 百度网盘模式功能状态更新 ===")
+        Log.e(TAG, "当前状态: $status")
+        Log.e(TAG, "dpad left键映射: ${if (isBaiduModeEnabled) "上一曲" else "双击屏幕(133,439)"}")
+        Log.e(TAG, "dpad right键映射: ${if (isBaiduModeEnabled) "下一曲" else "快进操作"}")
+        Log.e(TAG, "===============================")
+
+        // 使用Android系统通知样式的日志
+        android.util.Log.wtf(TAG, "🎵 百度网盘模式功能已$status")
+
+        // 通知所有监听器状态变化
+        notifyBaiduModeChanged(enabled)
+    }
+
+    private fun notifyBaiduModeChanged(enabled: Boolean) {
+        try {
+            val intent = Intent("com.example.bluetoothkeymapper.BAIDU_MODE_CHANGED")
+            intent.putExtra("enabled", enabled)
+            sendBroadcast(intent)
+            Log.d(TAG, "已发送百度网盘模式状态变化广播: $enabled")
+        } catch (e: Exception) {
+            Log.e(TAG, "发送百度网盘模式状态变化广播失败: ${e.message}")
+        }
+    }
+
+    fun isBaiduModeEnabled(): Boolean {
+        return isBaiduModeEnabled
     }
     
     override fun onDestroy() {
