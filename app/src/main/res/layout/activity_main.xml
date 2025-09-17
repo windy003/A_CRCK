@@ -90,15 +90,7 @@
         android:background="@android:color/holo_green_light"
         android:layout_marginBottom="24dp" />
 
-    <!-- 双击映射功能开关区域 -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="双击映射设置"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
-
+    <!-- YouTube模式开关区域 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -110,11 +102,11 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="dpad left → 双击屏幕后退5秒"
+            android:text="YouTube模式"
             android:textSize="16sp" />
 
         <Switch
-            android:id="@+id/switchDoubleClickMapping"
+            android:id="@+id/switchYoutubeMode"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:checked="true" />
@@ -122,10 +114,10 @@
     </LinearLayout>
 
     <TextView
-        android:id="@+id/tvMappingStatus"
+        android:id="@+id/tvYoutubeModeStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="状态: 双击映射已开启"
+        android:text="YouTube模式已开启 - dpad left双击屏幕后退5秒"
         android:textSize="14sp"
         android:textColor="@android:color/holo_green_dark"
         android:layout_marginBottom="16dp" />
@@ -197,7 +189,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="使用说明：\n1. 确保蓝牙已启用并配对遥控器\n2. 授予所需权限\n3. 在设置中启用无障碍服务\n4. 启动服务\n5. 按遥控器OK键映射为媒体播放/暂停\n6. 按遥控器左方向键双击屏幕后退5秒（可开关）\n7. 百度网盘模式：OK键播放/暂停，左右键上一曲/下一曲"
+        android:text="使用说明：\n1. 确保蓝牙已启用并配对遥控器\n2. 授予所需权限\n3. 在设置中启用无障碍服务\n4. 启动服务\n5. 按遥控器OK键映射为媒体播放/暂停\n6. YouTube模式：dpad left双击屏幕后退5秒\n7. 百度网盘模式：OK键播放/暂停，左右键上一曲/下一曲\n8. 电视模式：使用16:9全屏坐标"
         android:textSize="14sp"
         android:layout_marginTop="16dp"
         android:background="@android:color/background_light"

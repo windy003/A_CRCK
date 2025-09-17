@@ -36,7 +36,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "MainActivity"
         private const val PREFS_NAME = "KeyMapperPrefs"
-        private const val PREF_DOUBLE_CLICK_ENABLED = "double_click_mapping_enabled"
+        private const val PREF_YOUTUBE_MODE_ENABLED = "youtube_mode_enabled"
         private const val PREF_TV_MODE_ENABLED = "tv_mode_enabled"
         private const val PREF_BAIDU_MODE_ENABLED = "baidu_mode_enabled"
         private const val PREF_SERVICE_ENABLED = "service_enabled"
@@ -52,19 +52,19 @@ class MainActivity : AppCompatActivity() {
             when (intent?.action) {
                 YOUTUBE_MODE_CHANGED_ACTION -> {
                     val enabled = intent.getBooleanExtra("enabled", true)
-                    Log.d(TAG, "收到双击映射状态变化广播: $enabled")
+                    Log.d(TAG, "收到YouTube模式状态变化广播: $enabled")
 
                     // 更新开关状态，但不触发监听器
-                    binding.switchDoubleClickMapping.setOnCheckedChangeListener(null)
-                    binding.switchDoubleClickMapping.isChecked = enabled
+                    binding.switchYoutubeMode.setOnCheckedChangeListener(null)
+                    binding.switchYoutubeMode.isChecked = enabled
 
                     // 重新设置监听器
-                    setSwitchListener()
+                    setYoutubeModeSwitchListener()
 
                     // 更新UI显示
-                    updateMappingStatus(enabled)
+                    updateYoutubeModeStatus(enabled)
 
-                    Log.d(TAG, "已同步双击映射状态到MainActivity开关: $enabled")
+                    Log.d(TAG, "已同步YouTube模式状态到MainActivity开关: $enabled")
                 }
                 TV_MODE_CHANGED_ACTION -> {
                     val enabled = intent.getBooleanExtra("enabled", false)
@@ -200,10 +200,10 @@ class MainActivity : AppCompatActivity() {
             enableBluetooth()
         }
         
-        // 设置双击映射开关
-        val isDoubleClickEnabled = sharedPreferences.getBoolean(PREF_DOUBLE_CLICK_ENABLED, true)
-        binding.switchDoubleClickMapping.isChecked = isDoubleClickEnabled
-        updateMappingStatus(isDoubleClickEnabled)
+        // 设置YouTube模式开关
+        val isYoutubeModeEnabled = sharedPreferences.getBoolean(PREF_YOUTUBE_MODE_ENABLED, true)
+        binding.switchYoutubeMode.isChecked = isYoutubeModeEnabled
+        updateYoutubeModeStatus(isYoutubeModeEnabled)
         
         // 设置电视模式开关
         val isTvModeEnabled = sharedPreferences.getBoolean(PREF_TV_MODE_ENABLED, false)
@@ -216,7 +216,7 @@ class MainActivity : AppCompatActivity() {
         updateBaiduModeStatus(isBaiduModeEnabled)
 
         // 设置开关监听器
-        setSwitchListener()
+        setYoutubeModeSwitchListener()
         setTvModeSwitchListener()
         setBaiduModeSwitchListener()
         
@@ -224,30 +224,30 @@ class MainActivity : AppCompatActivity() {
         registerTileReceiver()
     }
     
-    private fun setSwitchListener() {
-        binding.switchDoubleClickMapping.setOnCheckedChangeListener { _, isChecked ->
-            Log.d(TAG, "双击映射开关状态改变: $isChecked")
-            
+    private fun setYoutubeModeSwitchListener() {
+        binding.switchYoutubeMode.setOnCheckedChangeListener { _, isChecked ->
+            Log.d(TAG, "YouTube模式开关状态改变: $isChecked")
+
             // 保存状态
             sharedPreferences.edit()
-                .putBoolean(PREF_DOUBLE_CLICK_ENABLED, isChecked)
+                .putBoolean(PREF_YOUTUBE_MODE_ENABLED, isChecked)
                 .apply()
-            
+
             // 更新无障碍服务状态
             KeyMapperAccessibilityService.instance?.setDoubleClickMappingEnabled(isChecked)
-            
+
             // 更新UI显示
-            updateMappingStatus(isChecked)
-            
+            updateYoutubeModeStatus(isChecked)
+
             // 发送广播通知磁贴更新状态
             val intent = Intent(YOUTUBE_MODE_CHANGED_ACTION)
             intent.putExtra("enabled", isChecked)
             sendBroadcast(intent)
-            Log.d(TAG, "已发送双击映射状态变化广播给磁贴")
-            
+            Log.d(TAG, "已发送YouTube模式状态变化广播给磁贴")
+
             Toast.makeText(
-                this, 
-                if (isChecked) "双击映射功能已开启" else "双击映射功能已关闭",
+                this,
+                if (isChecked) "YouTube模式已开启" else "YouTube模式已关闭",
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -525,9 +525,9 @@ class MainActivity : AppCompatActivity() {
         // 更新服务按钮的显示状态
         updateServiceButton()
         
-        // 同步双击映射状态
-        val isDoubleClickEnabled = sharedPreferences.getBoolean(PREF_DOUBLE_CLICK_ENABLED, true)
-        updateMappingStatus(isDoubleClickEnabled)
+        // 同步YouTube模式状态
+        val isYoutubeModeEnabled = sharedPreferences.getBoolean(PREF_YOUTUBE_MODE_ENABLED, true)
+        updateYoutubeModeStatus(isYoutubeModeEnabled)
         
         // 同步电视模式状态
         val isTvModeEnabled = sharedPreferences.getBoolean(PREF_TV_MODE_ENABLED, false)
@@ -538,14 +538,14 @@ class MainActivity : AppCompatActivity() {
         updateBaiduModeStatus(isBaiduModeEnabled)
     }
     
-    private fun updateMappingStatus(enabled: Boolean) {
-        binding.tvMappingStatus.text = if (enabled) {
-            "状态: 双击映射已开启"
+    private fun updateYoutubeModeStatus(enabled: Boolean) {
+        binding.tvYoutubeModeStatus.text = if (enabled) {
+            "YouTube模式已开启 - dpad left双击屏幕后退5秒"
         } else {
-            "状态: 双击映射已关闭"
+            "YouTube模式已关闭"
         }
-        
-        binding.tvMappingStatus.setTextColor(
+
+        binding.tvYoutubeModeStatus.setTextColor(
             ContextCompat.getColor(
                 this,
                 if (enabled) android.R.color.holo_green_dark else android.R.color.holo_red_dark
@@ -621,13 +621,13 @@ class MainActivity : AppCompatActivity() {
         updateUI()
         
         // 同步SharedPreferences中的状态到开关，防止磁贴修改后不同步
-        val currentState = sharedPreferences.getBoolean(PREF_DOUBLE_CLICK_ENABLED, true)
-        if (binding.switchDoubleClickMapping.isChecked != currentState) {
-            Log.d(TAG, "onResume检测到双击映射状态不同步，更新开关状态: $currentState")
-            binding.switchDoubleClickMapping.setOnCheckedChangeListener(null)
-            binding.switchDoubleClickMapping.isChecked = currentState
-            setSwitchListener()
-            updateMappingStatus(currentState)
+        val currentState = sharedPreferences.getBoolean(PREF_YOUTUBE_MODE_ENABLED, true)
+        if (binding.switchYoutubeMode.isChecked != currentState) {
+            Log.d(TAG, "onResume检测到YouTube模式状态不同步，更新开关状态: $currentState")
+            binding.switchYoutubeMode.setOnCheckedChangeListener(null)
+            binding.switchYoutubeMode.isChecked = currentState
+            setYoutubeModeSwitchListener()
+            updateYoutubeModeStatus(currentState)
         }
         
         // 同步电视模式状态

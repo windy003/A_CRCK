@@ -24,7 +24,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         private const val TAG = "KeyMapperAccessibility"
         var instance: KeyMapperAccessibilityService? = null
         private const val PREFS_NAME = "KeyMapperPrefs"
-        private const val PREF_DOUBLE_CLICK_ENABLED = "double_click_mapping_enabled"
+        private const val PREF_YOUTUBE_MODE_ENABLED = "youtube_mode_enabled"
         private const val PREF_TV_MODE_ENABLED = "tv_mode_enabled"
         private const val PREF_BAIDU_MODE_ENABLED = "baidu_mode_enabled"
     }
@@ -36,7 +36,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         
         // 从SharedPreferences读取初始状态
         val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        isDoubleClickMappingEnabled = sharedPreferences.getBoolean(PREF_DOUBLE_CLICK_ENABLED, true)
+        isDoubleClickMappingEnabled = sharedPreferences.getBoolean(PREF_YOUTUBE_MODE_ENABLED, true)
         isTvModeEnabled = sharedPreferences.getBoolean(PREF_TV_MODE_ENABLED, false)
         isBaiduModeEnabled = sharedPreferences.getBoolean(PREF_BAIDU_MODE_ENABLED, false)
         
