@@ -191,14 +191,29 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
             
-            // 处理home按键 - 映射为上一曲按键
+            // 处理home按键 - 根据模式进行不同映射
             122 -> {  // 122 Move Home键（蓝牙遥控器的Home键）
                 Log.e(TAG, "!!! 检测到Move Home按键: ${event.keyCode} !!!")
-                
+
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    Log.e(TAG, "执行上一曲操作")
-                    sendMediaPrevious()
-                    Log.e(TAG, "上一曲操作完成")
+                    if (isDoubleClickMappingEnabled) {
+                        // YouTube模式：竖屏模式下点击坐标(841,623)，横屏模式下忽略
+                        val orientation = resources.configuration.orientation
+                        val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+
+                        if (isPortrait) {
+                            Log.e(TAG, "YouTube模式竖屏 - 执行单击屏幕坐标(1029,649)操作")
+                            performSingleClick(1029f, 649f)
+                            Log.e(TAG, "竖屏模式单击操作完成")
+                        } else {
+                            Log.w(TAG, "YouTube模式横屏 - Home键功能已禁用")
+                        }
+                    } else {
+                        // 非YouTube模式：执行上一曲操作
+                        Log.e(TAG, "普通模式 - 执行上一曲操作")
+                        sendMediaPrevious()
+                        Log.e(TAG, "上一曲操作完成")
+                    }
                 }
                 return true // 拦截原始事件
             }
