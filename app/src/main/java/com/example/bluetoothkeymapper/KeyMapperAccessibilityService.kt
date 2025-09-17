@@ -55,6 +55,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             Log.e(TAG, "映射模式: 媒体播放暂停键 + 双击屏幕映射")
             Log.e(TAG, "双击映射功能状态: ${if (isDoubleClickMappingEnabled) "开启" else "关闭"}")
             Log.i(TAG, "dpad left: 双击屏幕坐标(133,439)")
+            Log.i(TAG, "dpad right: 双击屏幕坐标 (竖屏810,265 / 横屏1940,384)")
             Log.i(TAG, "dpad down: 点击CC按钮 (竖屏876,154 / 横屏2273,88)")
             Log.i(TAG, "dpad up: 单击屏幕坐标(520,107) - 仅横屏模式")
             Log.i(TAG, "back key: 单击屏幕坐标(133,439)")
@@ -199,6 +200,28 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                     Log.e(TAG, "执行下一曲操作")
                     sendMediaNext()
                     Log.e(TAG, "下一曲操作完成")
+                }
+                return true // 拦截原始事件
+            }
+
+            // 处理dpad right键 - 根据屏幕方向双击不同坐标实现快进功能
+            KeyEvent.KEYCODE_DPAD_RIGHT -> {  // 22 方向键右
+                Log.e(TAG, "!!! 检测到dpad right按键: ${event.keyCode} !!!")
+
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    // 检查屏幕方向，选择对应的坐标
+                    val orientation = resources.configuration.orientation
+                    val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+
+                    if (isPortrait) {
+                        Log.e(TAG, "竖屏模式 - 执行双击屏幕坐标(810,265)操作")
+                        performDoubleClick(810f, 265f)
+                        Log.e(TAG, "竖屏模式双击操作完成")
+                    } else {
+                        Log.e(TAG, "横屏模式 - 执行双击屏幕坐标(1940,384)操作")
+                        performDoubleClick(1940f, 384f)
+                        Log.e(TAG, "横屏模式双击操作完成")
+                    }
                 }
                 return true // 拦截原始事件
             }
