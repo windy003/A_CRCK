@@ -189,7 +189,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="使用说明：\n1. 确保蓝牙已启用并配对遥控器\n2. 授予所需权限\n3. 在设置中启用无障碍服务\n4. 启动服务\n5. 按遥控器OK键映射为媒体播放/暂停\n6. YouTube模式：dpad left双击屏幕后退5秒，home键竖屏点击(1029,649)\n7. 百度网盘模式：OK键播放/暂停，左右键上一曲/下一曲\n8. 电视模式：使用16:9全屏坐标"
+        android:text="使用说明：\n1. 确保蓝牙已启用并配对遥控器\n2. 授予所需权限\n3. 在设置中启用无障碍服务\n4. 启动服务\n5. 按遥控器OK键映射为媒体播放/暂停\n6. YouTube模式：dpad left双击屏幕后退5秒，home键竖屏点击(1029,649)，menu键横屏返回\n7. 百度网盘模式：OK键播放/暂停，左右键上一曲/下一曲\n8. 电视模式：使用16:9全屏坐标"
         android:textSize="14sp"
         android:layout_marginTop="16dp"
         android:background="@android:color/background_light"

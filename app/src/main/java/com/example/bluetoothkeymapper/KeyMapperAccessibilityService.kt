@@ -218,14 +218,31 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
             
-            // 处理menu按键 - 映射为下一曲按键
+            // 处理menu按键 - 根据模式进行不同映射
             KeyEvent.KEYCODE_MENU -> {  // 82 Menu键
                 Log.e(TAG, "!!! 检测到Menu按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    Log.e(TAG, "执行下一曲操作")
-                    sendMediaNext()
-                    Log.e(TAG, "下一曲操作完成")
+                    if (isDoubleClickMappingEnabled) {
+                        // YouTube模式：横屏模式下发送返回键，竖屏模式下执行下一曲
+                        val orientation = resources.configuration.orientation
+                        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+                        if (isLandscape) {
+                            Log.e(TAG, "YouTube模式横屏 - 发送返回按键")
+                            sendBackKey()
+                            Log.e(TAG, "返回按键发送完成")
+                        } else {
+                            Log.e(TAG, "YouTube模式竖屏 - 执行下一曲操作")
+                            sendMediaNext()
+                            Log.e(TAG, "下一曲操作完成")
+                        }
+                    } else {
+                        // 非YouTube模式：执行下一曲操作
+                        Log.e(TAG, "普通模式 - 执行下一曲操作")
+                        sendMediaNext()
+                        Log.e(TAG, "下一曲操作完成")
+                    }
                 }
                 return true // 拦截原始事件
             }
@@ -336,18 +353,44 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     private fun sendMediaNext() {
         try {
             Log.e(TAG, "发送媒体下一曲按键...")
-            
+
             val downEvent = KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_NEXT)
             val upEvent = KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_NEXT)
-            
+
             // 通过AudioManager发送媒体按键
             val result1 = audioManager?.dispatchMediaKeyEvent(downEvent)
             Thread.sleep(50)
             val result2 = audioManager?.dispatchMediaKeyEvent(upEvent)
-            
+
             Log.e(TAG, "媒体下一曲按键发送结果: down=$result1, up=$result2")
         } catch (e: Exception) {
             Log.e(TAG, "发送媒体下一曲按键失败: ${e.message}")
+        }
+    }
+
+    private fun sendBackKey() {
+        try {
+            Log.e(TAG, "发送返回按键...")
+
+            val downEvent = KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK)
+            val upEvent = KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK)
+
+            // 发送返回按键事件
+            val instrumentation = android.app.Instrumentation()
+            instrumentation.sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+
+            Log.e(TAG, "返回按键发送完成")
+        } catch (e: Exception) {
+            Log.e(TAG, "发送返回按键失败: ${e.message}")
+
+            // 备用方法：直接使用performGlobalAction
+            try {
+                Log.e(TAG, "尝试使用performGlobalAction发送返回键...")
+                performGlobalAction(GLOBAL_ACTION_BACK)
+                Log.e(TAG, "performGlobalAction返回键发送完成")
+            } catch (e2: Exception) {
+                Log.e(TAG, "performGlobalAction发送返回键也失败: ${e2.message}")
+            }
         }
     }
     
