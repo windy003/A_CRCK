@@ -17,6 +17,7 @@ import android.os.Bundle
 import android.os.IBinder
 import android.provider.Settings
 import android.util.Log
+import android.widget.Switch
 import android.widget.Toast
 import android.app.ActivityManager
 import androidx.activity.result.contract.ActivityResultContracts
@@ -261,6 +262,11 @@ class MainActivity : AppCompatActivity() {
         binding.switchYoutubeMode.setOnCheckedChangeListener { _, isChecked ->
             Log.d(TAG, "YouTube模式开关状态改变: $isChecked")
 
+            if (isChecked) {
+                // 关闭其他所有开关
+                disableOtherModeSwitches(PREF_YOUTUBE_MODE_ENABLED)
+            }
+
             // 保存状态
             sharedPreferences.edit()
                 .putBoolean(PREF_YOUTUBE_MODE_ENABLED, isChecked)
@@ -289,26 +295,31 @@ class MainActivity : AppCompatActivity() {
     private fun setTvModeSwitchListener() {
         binding.switchTvMode.setOnCheckedChangeListener { _, isChecked ->
             Log.d(TAG, "电视模式开关状态改变: $isChecked")
-            
+
+            if (isChecked) {
+                // 关闭其他所有开关
+                disableOtherModeSwitches(PREF_TV_MODE_ENABLED)
+            }
+
             // 保存状态
             sharedPreferences.edit()
                 .putBoolean(PREF_TV_MODE_ENABLED, isChecked)
                 .apply()
-            
+
             // 更新无障碍服务状态
             KeyMapperAccessibilityService.instance?.setTvModeEnabled(isChecked)
-            
+
             // 更新UI显示
             updateTvModeStatus(isChecked)
-            
+
             // 发送广播通知磁贴更新状态
             val intent = Intent(TV_MODE_CHANGED_ACTION)
             intent.putExtra("enabled", isChecked)
             sendBroadcast(intent)
             Log.d(TAG, "已发送电视模式状态变化广播")
-            
+
             Toast.makeText(
-                this, 
+                this,
                 if (isChecked) "电视模式已开启 - 使用16:9坐标" else "电视模式已关闭 - 使用正常坐标",
                 Toast.LENGTH_SHORT
             ).show()
@@ -610,6 +621,11 @@ class MainActivity : AppCompatActivity() {
         binding.switchBaiduMode.setOnCheckedChangeListener { _, isChecked ->
             Log.d(TAG, "百度网盘模式开关状态改变: $isChecked")
 
+            if (isChecked) {
+                // 关闭其他所有开关
+                disableOtherModeSwitches(PREF_BAIDU_MODE_ENABLED)
+            }
+
             // 保存状态
             sharedPreferences.edit()
                 .putBoolean(PREF_BAIDU_MODE_ENABLED, isChecked)
@@ -653,6 +669,11 @@ class MainActivity : AppCompatActivity() {
     private fun setTiktokModeSwitchListener() {
         binding.switchTiktokMode.setOnCheckedChangeListener { _, isChecked ->
             Log.d(TAG, "TikTok模式开关状态改变: $isChecked")
+
+            if (isChecked) {
+                // 关闭其他所有开关
+                disableOtherModeSwitches(PREF_TIKTOK_MODE_ENABLED)
+            }
 
             // 保存状态
             sharedPreferences.edit()
@@ -702,6 +723,91 @@ class MainActivity : AppCompatActivity() {
     private fun integrateDTCFunctionality() {
         // A_DTC项目功能已集成
         Log.d(TAG, "A_DTC项目功能已集成到TikTok模式中")
+    }
+
+    private fun disableOtherModeSwitches(currentModeEnabled: String) {
+        Log.d(TAG, "关闭其他模式开关，当前启用的模式: $currentModeEnabled")
+
+        // 临时移除监听器防止递归调用
+        binding.switchYoutubeMode.setOnCheckedChangeListener(null)
+        binding.switchTvMode.setOnCheckedChangeListener(null)
+        binding.switchBaiduMode.setOnCheckedChangeListener(null)
+        binding.switchTiktokMode.setOnCheckedChangeListener(null)
+
+        // 根据当前启用的模式，关闭其他所有模式
+        when (currentModeEnabled) {
+            PREF_YOUTUBE_MODE_ENABLED -> {
+                // 关闭其他3个模式
+                setModeState(PREF_TV_MODE_ENABLED, false, binding.switchTvMode)
+                setModeState(PREF_BAIDU_MODE_ENABLED, false, binding.switchBaiduMode)
+                setModeState(PREF_TIKTOK_MODE_ENABLED, false, binding.switchTiktokMode)
+            }
+            PREF_TV_MODE_ENABLED -> {
+                // 关闭其他3个模式
+                setModeState(PREF_YOUTUBE_MODE_ENABLED, false, binding.switchYoutubeMode)
+                setModeState(PREF_BAIDU_MODE_ENABLED, false, binding.switchBaiduMode)
+                setModeState(PREF_TIKTOK_MODE_ENABLED, false, binding.switchTiktokMode)
+            }
+            PREF_BAIDU_MODE_ENABLED -> {
+                // 关闭其他3个模式
+                setModeState(PREF_YOUTUBE_MODE_ENABLED, false, binding.switchYoutubeMode)
+                setModeState(PREF_TV_MODE_ENABLED, false, binding.switchTvMode)
+                setModeState(PREF_TIKTOK_MODE_ENABLED, false, binding.switchTiktokMode)
+            }
+            PREF_TIKTOK_MODE_ENABLED -> {
+                // 关闭其他3个模式
+                setModeState(PREF_YOUTUBE_MODE_ENABLED, false, binding.switchYoutubeMode)
+                setModeState(PREF_TV_MODE_ENABLED, false, binding.switchTvMode)
+                setModeState(PREF_BAIDU_MODE_ENABLED, false, binding.switchBaiduMode)
+            }
+        }
+
+        // 重新设置监听器
+        setYoutubeModeSwitchListener()
+        setTvModeSwitchListener()
+        setBaiduModeSwitchListener()
+        setTiktokModeSwitchListener()
+
+        Log.d(TAG, "其他模式开关已关闭")
+    }
+
+    private fun setModeState(prefKey: String, enabled: Boolean, switch: Switch) {
+        // 保存状态到SharedPreferences
+        sharedPreferences.edit().putBoolean(prefKey, enabled).apply()
+
+        // 更新开关状态
+        switch.isChecked = enabled
+
+        // 更新相应的服务状态和UI
+        when (prefKey) {
+            PREF_YOUTUBE_MODE_ENABLED -> {
+                KeyMapperAccessibilityService.instance?.setDoubleClickMappingEnabled(enabled)
+                updateYoutubeModeStatus(enabled)
+                sendModeChangeBroadcast(YOUTUBE_MODE_CHANGED_ACTION, enabled)
+            }
+            PREF_TV_MODE_ENABLED -> {
+                KeyMapperAccessibilityService.instance?.setTvModeEnabled(enabled)
+                updateTvModeStatus(enabled)
+                sendModeChangeBroadcast(TV_MODE_CHANGED_ACTION, enabled)
+            }
+            PREF_BAIDU_MODE_ENABLED -> {
+                KeyMapperAccessibilityService.instance?.setBaiduModeEnabled(enabled)
+                updateBaiduModeStatus(enabled)
+                sendModeChangeBroadcast(BAIDU_MODE_CHANGED_ACTION, enabled)
+            }
+            PREF_TIKTOK_MODE_ENABLED -> {
+                KeyMapperAccessibilityService.instance?.setTiktokModeEnabled(enabled)
+                updateTiktokModeStatus(enabled)
+                sendModeChangeBroadcast(TIKTOK_MODE_CHANGED_ACTION, enabled)
+            }
+        }
+    }
+
+    private fun sendModeChangeBroadcast(action: String, enabled: Boolean) {
+        val intent = Intent(action)
+        intent.putExtra("enabled", enabled)
+        sendBroadcast(intent)
+        Log.d(TAG, "已发送模式状态变化广播: $action = $enabled")
     }
 
     private fun saveSwipePixels() {
