@@ -211,7 +211,19 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 Log.e(TAG, "!!! 检测到Move Home按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (isDoubleClickMappingEnabled) {
+                    if (isTvModeEnabled) {
+                        // 电视模式：根据屏幕方向处理
+                        val orientation = resources.configuration.orientation
+                        val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+
+                        if (isPortrait) {
+                            Log.e(TAG, "电视模式竖屏 - 执行单击屏幕坐标(995,634)操作")
+                            performSingleClick(995f, 634f)
+                            Log.e(TAG, "电视模式竖屏单击操作完成")
+                        } else {
+                            Log.w(TAG, "电视模式横屏 - Home键功能已禁用")
+                        }
+                    } else if (isDoubleClickMappingEnabled) {
                         // YouTube模式：竖屏模式下点击坐标(841,623)，横屏模式下忽略
                         val orientation = resources.configuration.orientation
                         val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
