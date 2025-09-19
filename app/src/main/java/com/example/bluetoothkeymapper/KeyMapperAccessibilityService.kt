@@ -316,7 +316,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
 
-            // 处理F5键(语音键) - 在横屏状态下点击坐标(545,104)，竖屏状态下忽略
+            // 处理F5键(语音键) - 根据模式和屏幕方向进行不同映射
             135 -> {  // 135 F5键（蓝牙遥控器的语音键）
                 Log.e(TAG, "!!! 检测到F5语音键: ${event.keyCode} !!!")
 
@@ -325,12 +325,24 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                     val orientation = resources.configuration.orientation
                     val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
 
-                    if (isPortrait) {
-                        Log.e(TAG, "当前为竖屏状态，忽略F5键操作")
+                    if (isTvModeEnabled) {
+                        // 电视模式：根据屏幕方向选择不同坐标
+                        if (isPortrait) {
+                            Log.e(TAG, "电视模式竖屏状态，忽略F5键操作")
+                        } else {
+                            Log.e(TAG, "电视模式横屏状态，执行点击坐标(1885,60)操作")
+                            performSingleClick(1885f, 60f)
+                            Log.e(TAG, "电视模式F5键横屏点击操作完成")
+                        }
                     } else {
-                        Log.e(TAG, "当前为横屏状态，执行点击坐标(2402,74)操作")
-                        performSingleClick(2402f, 74f)
-                        Log.e(TAG, "F5键横屏点击操作完成")
+                        // 普通模式：原有逻辑
+                        if (isPortrait) {
+                            Log.e(TAG, "当前为竖屏状态，忽略F5键操作")
+                        } else {
+                            Log.e(TAG, "当前为横屏状态，执行点击坐标(2402,74)操作")
+                            performSingleClick(2402f, 74f)
+                            Log.e(TAG, "F5键横屏点击操作完成")
+                        }
                     }
                 }
                 return true // 拦截原始事件
