@@ -686,7 +686,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateTiktokModeStatus(enabled: Boolean) {
         binding.tvTiktokModeStatus.text = if (enabled) {
-            "TikTok/抖音模式已开启 - 左右键上下视频，OK键播放/暂停，支持客制化像素滑动"
+            "TikTok/抖音模式已开启 - 左键左滑，右键右滑，OK键播放/暂停，从坐标(566,2213)滑动"
         } else {
             "TikTok/抖音模式已关闭"
         }

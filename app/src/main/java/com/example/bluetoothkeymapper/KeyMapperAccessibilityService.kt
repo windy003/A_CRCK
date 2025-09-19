@@ -161,10 +161,10 @@ class KeyMapperAccessibilityService : AccessibilityService() {
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
                     if (isTiktokModeEnabled) {
-                        // TikTok模式：上滑操作（看上一个视频）
-                        Log.e(TAG, "TikTok模式 - 执行上滑操作")
-                        performTiktokUpSwipe()
-                        Log.e(TAG, "TikTok模式上滑操作完成")
+                        // TikTok模式：左滑操作
+                        Log.e(TAG, "TikTok模式 - 执行左滑操作")
+                        performTiktokLeftSwipe()
+                        Log.e(TAG, "TikTok模式左滑操作完成")
                         return true
                     } else if (isTvModeEnabled) {
                         // 电视模式：根据屏幕方向选择不同坐标
@@ -332,10 +332,10 @@ class KeyMapperAccessibilityService : AccessibilityService() {
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
                     if (isTiktokModeEnabled) {
-                        // TikTok模式：下滑操作（看下一个视频）
-                        Log.e(TAG, "TikTok模式 - 执行下滑操作")
-                        performTiktokDownSwipe()
-                        Log.e(TAG, "TikTok模式下滑操作完成")
+                        // TikTok模式：右滑操作
+                        Log.e(TAG, "TikTok模式 - 执行右滑操作")
+                        performTiktokRightSwipe()
+                        Log.e(TAG, "TikTok模式右滑操作完成")
                         return true
                     } else if (isTvModeEnabled) {
                         // 电视模式：根据屏幕方向选择不同坐标
@@ -775,8 +775,8 @@ class KeyMapperAccessibilityService : AccessibilityService() {
 
         Log.e(TAG, "=== TikTok模式功能状态更新 ===")
         Log.e(TAG, "当前状态: $status")
-        Log.e(TAG, "dpad left键映射: ${if (isTiktokModeEnabled) "上滑动作" else "原有功能"}")
-        Log.e(TAG, "dpad right键映射: ${if (isTiktokModeEnabled) "下滑动作" else "原有功能"}")
+        Log.e(TAG, "dpad left键映射: ${if (isTiktokModeEnabled) "从(566,2213)左滑" else "原有功能"}")
+        Log.e(TAG, "dpad right键映射: ${if (isTiktokModeEnabled) "从(566,2213)右滑" else "原有功能"}")
         Log.e(TAG, "OK键映射: ${if (isTiktokModeEnabled) "屏幕中心点击" else "原有功能"}")
         Log.e(TAG, "===============================")
 
@@ -802,42 +802,40 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         return isTiktokModeEnabled
     }
 
-    private fun performTiktokUpSwipe() {
+    private fun performTiktokLeftSwipe() {
         if (!isTiktokServiceEnabled()) {
-            Log.d(TAG, "TikTok服务已关闭，忽略上滑手势")
+            Log.d(TAG, "TikTok服务已关闭，忽略左滑手势")
             return
         }
 
         val swipePixels = getSwipePixels()
         val path = Path().apply {
-            val centerX = screenWidth / 2f
-            val centerY = screenHeight / 2f
-            val startY = centerY
-            val endY = centerY - swipePixels.toFloat()  // 向上滑动客制化像素
-            moveTo(centerX, startY)
-            lineTo(centerX, endY)
+            val startX = 566f
+            val endX = startX - swipePixels.toFloat()  // 向左滑动客制化像素
+            val y = 2213f
+            moveTo(startX, y)
+            lineTo(endX, y)
         }
         performTiktokSwipeGesture(path)
-        Log.d(TAG, "执行TikTok上滑手势: 从屏幕中心向上滑动${swipePixels}px")
+        Log.d(TAG, "执行TikTok左滑手势: 从(566,2213)向左滑动${swipePixels}px")
     }
 
-    private fun performTiktokDownSwipe() {
+    private fun performTiktokRightSwipe() {
         if (!isTiktokServiceEnabled()) {
-            Log.d(TAG, "TikTok服务已关闭，忽略下滑手势")
+            Log.d(TAG, "TikTok服务已关闭，忽略右滑手势")
             return
         }
 
         val swipePixels = getSwipePixels()
         val path = Path().apply {
-            val centerX = screenWidth / 2f
-            val centerY = screenHeight / 2f
-            val startY = centerY
-            val endY = centerY + swipePixels.toFloat()  // 向下滑动客制化像素
-            moveTo(centerX, startY)
-            lineTo(centerX, endY)
+            val startX = 566f
+            val endX = startX + swipePixels.toFloat()  // 向右滑动客制化像素
+            val y = 2213f
+            moveTo(startX, y)
+            lineTo(endX, y)
         }
         performTiktokSwipeGesture(path)
-        Log.d(TAG, "执行TikTok下滑手势: 从屏幕中心向下滑动${swipePixels}px")
+        Log.d(TAG, "执行TikTok右滑手势: 从(566,2213)向右滑动${swipePixels}px")
     }
 
     private fun performTiktokCenterClick() {
