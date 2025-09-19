@@ -285,8 +285,8 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                         val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
 
                         if (isPortrait) {
-                            Log.e(TAG, "YouTube模式竖屏 - 执行单击屏幕坐标(1029,649)操作")
-                            performSingleClick(1029f, 649f)
+                            Log.e(TAG, "YouTube模式竖屏 - 执行单击屏幕坐标(1050,620)操作")
+                            performSingleClick(1050f, 620f)
                             Log.e(TAG, "竖屏模式单击操作完成")
                         } else {
                             Log.w(TAG, "YouTube模式横屏 - Home键功能已禁用")
