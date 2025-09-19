@@ -249,7 +249,13 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 Log.e(TAG, "!!! 检测到Move Home按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (isTvModeEnabled) {
+                    if (isTiktokModeEnabled) {
+                        // TikTok模式：返回进度条到起始位置
+                        Log.e(TAG, "TikTok模式 - 执行进度条重置操作")
+                        performTiktokSeekToStart()
+                        Log.e(TAG, "TikTok模式进度条重置操作完成")
+                        return true
+                    } else if (isTvModeEnabled) {
                         // 电视模式：根据屏幕方向处理
                         val orientation = resources.configuration.orientation
                         val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
@@ -778,6 +784,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         Log.e(TAG, "dpad left键映射: ${if (isTiktokModeEnabled) "从(566,2213)左滑" else "原有功能"}")
         Log.e(TAG, "dpad right键映射: ${if (isTiktokModeEnabled) "从(566,2213)右滑" else "原有功能"}")
         Log.e(TAG, "OK键映射: ${if (isTiktokModeEnabled) "屏幕中心点击" else "原有功能"}")
+        Log.e(TAG, "Home键映射: ${if (isTiktokModeEnabled) "进度条重置从(900,2213)到(0,2213)" else "原有功能"}")
         Log.e(TAG, "===============================")
 
         // 使用Android系统通知样式的日志
@@ -853,6 +860,23 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         }
         performTiktokClickGesture(path)
         Log.d(TAG, "执行TikTok屏幕中心点击: 位置(${centerX},${centerY})")
+    }
+
+    private fun performTiktokSeekToStart() {
+        if (!isTiktokServiceEnabled()) {
+            Log.d(TAG, "TikTok服务已关闭，忽略进度条重置手势")
+            return
+        }
+
+        val path = Path().apply {
+            val startX = 900f   // 从适中位置开始，避免被误认为返回手势
+            val endX = 0f       // 滑动到最左边(0位置)，实现跳转到开头
+            val y = 2213f       // 使用与左右滑动相同的Y坐标
+            moveTo(startX, y)
+            lineTo(endX, y)
+        }
+        performTiktokSwipeGesture(path)
+        Log.d(TAG, "执行TikTok进度条重置: 从(900,2213)滑动到(0,2213)")
     }
 
     private fun performTiktokSwipeGesture(path: Path) {
