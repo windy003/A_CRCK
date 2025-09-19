@@ -184,12 +184,93 @@
         android:text="百度网盘模式已关闭"
         android:textSize="14sp"
         android:textColor="@android:color/holo_red_dark"
+        android:layout_marginBottom="16dp" />
+
+    <!-- TikTok/抖音模式开关区域 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="TikTok/抖音模式"
+            android:textSize="16sp" />
+
+        <Switch
+            android:id="@+id/switchTiktokMode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="false" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvTiktokModeStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="TikTok/抖音模式已关闭"
+        android:textSize="14sp"
+        android:textColor="@android:color/holo_red_dark"
+        android:layout_marginBottom="16dp" />
+
+    <!-- 客制化像素输入区域 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="客制化滑动像素设置"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="滑动像素值："
+            android:textSize="16sp"
+            android:layout_marginEnd="8dp" />
+
+        <EditText
+            android:id="@+id/etSwipePixels"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="输入滑动像素值 (如: 100)"
+            android:inputType="number"
+            android:minHeight="48dp" />
+
+        <Button
+            android:id="@+id/btnSavePixels"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="保存"
+            android:layout_marginStart="8dp" />
+
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="说明：此设置仅在TikTok/抖音模式下生效，用于控制滑动手势的距离"
+        android:textSize="14sp"
+        android:textColor="@android:color/darker_gray"
         android:layout_marginBottom="24dp" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="使用说明：\n1. 确保蓝牙已启用并配对遥控器\n2. 授予所需权限\n3. 在设置中启用无障碍服务\n4. 启动服务\n5. 按遥控器OK键映射为媒体播放/暂停\n6. YouTube模式：dpad left双击屏幕后退5秒，home键竖屏点击(1029,649)，menu键横屏返回\n7. 百度网盘模式：OK键播放/暂停，左右键上一曲/下一曲\n8. 电视模式：使用16:9全屏坐标"
+        android:text="使用说明：\n1. 确保蓝牙已启用并配对遥控器\n2. 授予所需权限\n3. 在设置中启用无障碍服务\n4. 启动服务\n5. 按遥控器OK键映射为媒体播放/暂停\n6. YouTube模式：dpad left双击屏幕后退5秒，home键竖屏点击(1029,649)，menu键横屏返回\n7. 百度网盘模式：OK键播放/暂停，左右键上一曲/下一曲\n8. 电视模式：使用16:9全屏坐标\n9. TikTok/抖音模式：左右键上下视频，OK键播放/暂停，支持客制化像素滑动"
         android:textSize="14sp"
         android:layout_marginTop="16dp"
         android:background="@android:color/background_light"

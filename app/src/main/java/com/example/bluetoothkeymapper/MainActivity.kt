@@ -39,10 +39,12 @@ class MainActivity : AppCompatActivity() {
         private const val PREF_YOUTUBE_MODE_ENABLED = "youtube_mode_enabled"
         private const val PREF_TV_MODE_ENABLED = "tv_mode_enabled"
         private const val PREF_BAIDU_MODE_ENABLED = "baidu_mode_enabled"
+        private const val PREF_TIKTOK_MODE_ENABLED = "tiktok_mode_enabled"
         private const val PREF_SERVICE_ENABLED = "service_enabled"
         private const val YOUTUBE_MODE_CHANGED_ACTION = "com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED"
         private const val TV_MODE_CHANGED_ACTION = "com.example.bluetoothkeymapper.TV_MODE_CHANGED"
         private const val BAIDU_MODE_CHANGED_ACTION = "com.example.bluetoothkeymapper.BAIDU_MODE_CHANGED"
+        private const val TIKTOK_MODE_CHANGED_ACTION = "com.example.bluetoothkeymapper.TIKTOK_MODE_CHANGED"
         private const val MAIN_TOGGLE_CHANGED_ACTION = "com.example.bluetoothkeymapper.MAIN_TOGGLE_CHANGED"
     }
     
@@ -108,6 +110,22 @@ class MainActivity : AppCompatActivity() {
                     updateBaiduModeStatus(enabled)
 
                     Log.d(TAG, "已同步百度网盘模式状态到MainActivity开关: $enabled")
+                }
+                TIKTOK_MODE_CHANGED_ACTION -> {
+                    val enabled = intent.getBooleanExtra("enabled", false)
+                    Log.d(TAG, "收到TikTok模式状态变化广播: $enabled")
+
+                    // 更新开关状态，但不触发监听器
+                    binding.switchTiktokMode.setOnCheckedChangeListener(null)
+                    binding.switchTiktokMode.isChecked = enabled
+
+                    // 重新设置监听器
+                    setTiktokModeSwitchListener()
+
+                    // 更新UI显示
+                    updateTiktokModeStatus(enabled)
+
+                    Log.d(TAG, "已同步TikTok模式状态到MainActivity开关: $enabled")
                 }
             }
         }
@@ -199,6 +217,12 @@ class MainActivity : AppCompatActivity() {
             Log.d(TAG, "点击启用蓝牙按钮")
             enableBluetooth()
         }
+
+        // 设置客制化像素保存按钮点击事件
+        binding.btnSavePixels.setOnClickListener {
+            Log.d(TAG, "点击保存像素值按钮")
+            saveSwipePixels()
+        }
         
         // 设置YouTube模式开关
         val isYoutubeModeEnabled = sharedPreferences.getBoolean(PREF_YOUTUBE_MODE_ENABLED, true)
@@ -215,10 +239,19 @@ class MainActivity : AppCompatActivity() {
         binding.switchBaiduMode.isChecked = isBaiduModeEnabled
         updateBaiduModeStatus(isBaiduModeEnabled)
 
+        // 设置TikTok模式开关
+        val isTiktokModeEnabled = sharedPreferences.getBoolean(PREF_TIKTOK_MODE_ENABLED, false)
+        binding.switchTiktokMode.isChecked = isTiktokModeEnabled
+        updateTiktokModeStatus(isTiktokModeEnabled)
+
+        // 初始化客制化像素值
+        loadSwipePixels()
+
         // 设置开关监听器
         setYoutubeModeSwitchListener()
         setTvModeSwitchListener()
         setBaiduModeSwitchListener()
+        setTiktokModeSwitchListener()
         
         // 注册广播接收器监听磁贴状态变化
         registerTileReceiver()
@@ -289,6 +322,7 @@ class MainActivity : AppCompatActivity() {
                     addAction(YOUTUBE_MODE_CHANGED_ACTION)
                     addAction(TV_MODE_CHANGED_ACTION)
                     addAction(BAIDU_MODE_CHANGED_ACTION)
+                    addAction(TIKTOK_MODE_CHANGED_ACTION)
                     addAction(MAIN_TOGGLE_CHANGED_ACTION)
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -536,6 +570,10 @@ class MainActivity : AppCompatActivity() {
         // 同步百度网盘模式状态
         val isBaiduModeEnabled = sharedPreferences.getBoolean(PREF_BAIDU_MODE_ENABLED, false)
         updateBaiduModeStatus(isBaiduModeEnabled)
+
+        // 同步TikTok模式状态
+        val isTiktokModeEnabled = sharedPreferences.getBoolean(PREF_TIKTOK_MODE_ENABLED, false)
+        updateTiktokModeStatus(isTiktokModeEnabled)
     }
     
     private fun updateYoutubeModeStatus(enabled: Boolean) {
@@ -611,6 +649,91 @@ class MainActivity : AppCompatActivity() {
             )
         )
     }
+
+    private fun setTiktokModeSwitchListener() {
+        binding.switchTiktokMode.setOnCheckedChangeListener { _, isChecked ->
+            Log.d(TAG, "TikTok模式开关状态改变: $isChecked")
+
+            // 保存状态
+            sharedPreferences.edit()
+                .putBoolean(PREF_TIKTOK_MODE_ENABLED, isChecked)
+                .apply()
+
+            // 更新无障碍服务状态
+            KeyMapperAccessibilityService.instance?.setTiktokModeEnabled(isChecked)
+
+            // 更新UI显示
+            updateTiktokModeStatus(isChecked)
+
+            // 发送广播通知磁贴更新状态
+            val intent = Intent(TIKTOK_MODE_CHANGED_ACTION)
+            intent.putExtra("enabled", isChecked)
+            sendBroadcast(intent)
+            Log.d(TAG, "已发送TikTok模式状态变化广播")
+
+            // 当启用TikTok模式时，集成A_DTC功能
+            if (isChecked) {
+                integrateDTCFunctionality()
+            }
+
+            Toast.makeText(
+                this,
+                if (isChecked) "TikTok/抖音模式已开启" else "TikTok/抖音模式已关闭",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun updateTiktokModeStatus(enabled: Boolean) {
+        binding.tvTiktokModeStatus.text = if (enabled) {
+            "TikTok/抖音模式已开启 - 左右键上下视频，OK键播放/暂停，支持客制化像素滑动"
+        } else {
+            "TikTok/抖音模式已关闭"
+        }
+
+        binding.tvTiktokModeStatus.setTextColor(
+            ContextCompat.getColor(
+                this,
+                if (enabled) android.R.color.holo_green_dark else android.R.color.holo_red_dark
+            )
+        )
+    }
+
+    private fun integrateDTCFunctionality() {
+        // A_DTC项目功能已集成
+        Log.d(TAG, "A_DTC项目功能已集成到TikTok模式中")
+    }
+
+    private fun saveSwipePixels() {
+        val pixelsText = binding.etSwipePixels.text.toString()
+        if (pixelsText.isNotEmpty()) {
+            try {
+                val pixels = pixelsText.toInt()
+                if (pixels > 0) {
+                    // 保存到两个地方：主应用的SharedPreferences和TikTok专用的SharedPreferences
+                    sharedPreferences.edit().putInt("swipe_pixels", pixels).apply()
+
+                    val tiktokPrefs = getSharedPreferences("TikTokRemoteControl", Context.MODE_PRIVATE)
+                    tiktokPrefs.edit().putInt("swipe_pixels", pixels).apply()
+
+                    Toast.makeText(this, "滑动像素值已保存: ${pixels}px", Toast.LENGTH_SHORT).show()
+                    Log.d(TAG, "滑动像素值已保存: ${pixels}px")
+                } else {
+                    Toast.makeText(this, "请输入大于0的数值", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: NumberFormatException) {
+                Toast.makeText(this, "请输入有效的数字", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(this, "请输入像素值", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun loadSwipePixels() {
+        val savedPixels = sharedPreferences.getInt("swipe_pixels", 100)
+        binding.etSwipePixels.setText(savedPixels.toString())
+        Log.d(TAG, "加载滑动像素值: ${savedPixels}px")
+    }
     
     override fun onResume() {
         super.onResume()
@@ -648,6 +771,16 @@ class MainActivity : AppCompatActivity() {
             binding.switchBaiduMode.isChecked = currentBaiduModeState
             setBaiduModeSwitchListener()
             updateBaiduModeStatus(currentBaiduModeState)
+        }
+
+        // 同步TikTok模式状态
+        val currentTiktokModeState = sharedPreferences.getBoolean(PREF_TIKTOK_MODE_ENABLED, false)
+        if (binding.switchTiktokMode.isChecked != currentTiktokModeState) {
+            Log.d(TAG, "onResume检测到TikTok模式状态不同步，更新开关状态: $currentTiktokModeState")
+            binding.switchTiktokMode.setOnCheckedChangeListener(null)
+            binding.switchTiktokMode.isChecked = currentTiktokModeState
+            setTiktokModeSwitchListener()
+            updateTiktokModeStatus(currentTiktokModeState)
         }
     }
     

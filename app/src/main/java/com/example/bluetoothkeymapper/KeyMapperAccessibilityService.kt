@@ -18,7 +18,10 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     private var isDoubleClickMappingEnabled = true // 双击映射功能开关，默认开启
     private var isTvModeEnabled = false // 电视模式开关，默认关闭
     private var isBaiduModeEnabled = false // 百度网盘模式开关，默认关闭
+    private var isTiktokModeEnabled = false // TikTok模式开关，默认关闭
     private var lastMediaPlayPauseTime = 0L // 上次播放/暂停按键时间戳
+    private var screenWidth = 0 // 屏幕宽度
+    private var screenHeight = 0 // 屏幕高度
     
     companion object {
         private const val TAG = "KeyMapperAccessibility"
@@ -27,6 +30,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         private const val PREF_YOUTUBE_MODE_ENABLED = "youtube_mode_enabled"
         private const val PREF_TV_MODE_ENABLED = "tv_mode_enabled"
         private const val PREF_BAIDU_MODE_ENABLED = "baidu_mode_enabled"
+        private const val PREF_TIKTOK_MODE_ENABLED = "tiktok_mode_enabled"
     }
     
     override fun onCreate() {
@@ -39,11 +43,13 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         isDoubleClickMappingEnabled = sharedPreferences.getBoolean(PREF_YOUTUBE_MODE_ENABLED, true)
         isTvModeEnabled = sharedPreferences.getBoolean(PREF_TV_MODE_ENABLED, false)
         isBaiduModeEnabled = sharedPreferences.getBoolean(PREF_BAIDU_MODE_ENABLED, false)
+        isTiktokModeEnabled = sharedPreferences.getBoolean(PREF_TIKTOK_MODE_ENABLED, false)
         
         Log.d(TAG, "无障碍服务已创建")
         Log.d(TAG, "双击映射初始状态: ${if (isDoubleClickMappingEnabled) "开启" else "关闭"}")
         Log.d(TAG, "电视模式初始状态: ${if (isTvModeEnabled) "开启" else "关闭"}")
         Log.d(TAG, "百度网盘模式初始状态: ${if (isBaiduModeEnabled) "开启" else "关闭"}")
+        Log.d(TAG, "TikTok模式初始状态: ${if (isTiktokModeEnabled) "开启" else "关闭"}")
     }
     
     override fun onServiceConnected() {
@@ -52,6 +58,9 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         Log.e(TAG, "服务信息: ${serviceInfo}")
         Log.e(TAG, "可处理事件类型: ${serviceInfo?.eventTypes}")
         Log.e(TAG, "可过滤按键事件: ${serviceInfo?.flags?.and(android.accessibilityservice.AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS) != 0}")
+
+        // 获取屏幕尺寸
+        getScreenDimensions()
         
         // 测试日志输出
         android.os.Handler().postDelayed({
@@ -77,6 +86,23 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     override fun onInterrupt() {
         Log.d(TAG, "无障碍服务被中断")
     }
+
+    private fun getScreenDimensions() {
+        val displayMetrics = resources.displayMetrics
+        screenWidth = displayMetrics.widthPixels
+        screenHeight = displayMetrics.heightPixels
+        Log.d(TAG, "屏幕尺寸: ${screenWidth}x${screenHeight}")
+    }
+
+    private fun getSwipePixels(): Int {
+        val sharedPreferences = getSharedPreferences("TikTokRemoteControl", MODE_PRIVATE)
+        return sharedPreferences.getInt("swipe_pixels", 100)
+    }
+
+    private fun isTiktokServiceEnabled(): Boolean {
+        val sharedPreferences = getSharedPreferences("TikTokRemoteControl", MODE_PRIVATE)
+        return sharedPreferences.getBoolean("service_master_switch", true)
+    }
     
     override fun onKeyEvent(event: KeyEvent): Boolean {
         // 强制记录所有按键事件，确保日志可见
@@ -100,7 +126,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         Log.w(TAG, "重复次数: ${event.repeatCount}")
         Log.w(TAG, "==========================")
         
-        // 处理Enter键和其他OK键 - 映射为媒体播放暂停键
+        // 处理Enter键和其他OK键 - 根据模式进行不同映射
         when (event.keyCode) {
             60,                              // 遥控器Enter键
             KeyEvent.KEYCODE_ENTER,          // 66 标准Enter键
@@ -114,11 +140,17 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             KeyEvent.KEYCODE_MEDIA_PLAY,     // 126 媒体播放键
             KeyEvent.KEYCODE_SPACE -> {      // 62 空格键
                 Log.e(TAG, "!!! 检测到目标按键: ${event.keyCode} !!!")
-                
+
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    Log.e(TAG, "执行按键映射为媒体播放暂停键")
-                    sendMediaPlayPause()
-                    Log.e(TAG, "按键映射完成")
+                    if (isTiktokModeEnabled) {
+                        Log.e(TAG, "TikTok模式 - 执行屏幕中心点击操作")
+                        performTiktokCenterClick()
+                        Log.e(TAG, "TikTok模式中心点击操作完成")
+                    } else {
+                        Log.e(TAG, "执行按键映射为媒体播放暂停键")
+                        sendMediaPlayPause()
+                        Log.e(TAG, "按键映射完成")
+                    }
                 }
                 return true // 拦截原始事件
             }
@@ -128,7 +160,13 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 Log.e(TAG, "!!! 检测到dpad left按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (isTvModeEnabled) {
+                    if (isTiktokModeEnabled) {
+                        // TikTok模式：上滑操作（看上一个视频）
+                        Log.e(TAG, "TikTok模式 - 执行上滑操作")
+                        performTiktokUpSwipe()
+                        Log.e(TAG, "TikTok模式上滑操作完成")
+                        return true
+                    } else if (isTvModeEnabled) {
                         // 电视模式：根据屏幕方向选择不同坐标
                         val orientation = resources.configuration.orientation
                         val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
@@ -158,7 +196,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                         return super.onKeyEvent(event) // 不拦截，让系统处理原有功能
                     }
                 } else {
-                    return if (isTvModeEnabled || isBaiduModeEnabled || isDoubleClickMappingEnabled) true else super.onKeyEvent(event)
+                    return if (isTiktokModeEnabled || isTvModeEnabled || isBaiduModeEnabled || isDoubleClickMappingEnabled) true else super.onKeyEvent(event)
                 }
             }
             
@@ -293,7 +331,13 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 Log.e(TAG, "!!! 检测到dpad right按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (isTvModeEnabled) {
+                    if (isTiktokModeEnabled) {
+                        // TikTok模式：下滑操作（看下一个视频）
+                        Log.e(TAG, "TikTok模式 - 执行下滑操作")
+                        performTiktokDownSwipe()
+                        Log.e(TAG, "TikTok模式下滑操作完成")
+                        return true
+                    } else if (isTvModeEnabled) {
                         // 电视模式：根据屏幕方向选择不同坐标
                         val orientation = resources.configuration.orientation
                         val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
@@ -724,7 +768,133 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     fun isBaiduModeEnabled(): Boolean {
         return isBaiduModeEnabled
     }
-    
+
+    fun setTiktokModeEnabled(enabled: Boolean) {
+        isTiktokModeEnabled = enabled
+        val status = if (isTiktokModeEnabled) "开启" else "关闭"
+
+        Log.e(TAG, "=== TikTok模式功能状态更新 ===")
+        Log.e(TAG, "当前状态: $status")
+        Log.e(TAG, "dpad left键映射: ${if (isTiktokModeEnabled) "上滑动作" else "原有功能"}")
+        Log.e(TAG, "dpad right键映射: ${if (isTiktokModeEnabled) "下滑动作" else "原有功能"}")
+        Log.e(TAG, "OK键映射: ${if (isTiktokModeEnabled) "屏幕中心点击" else "原有功能"}")
+        Log.e(TAG, "===============================")
+
+        // 使用Android系统通知样式的日志
+        android.util.Log.wtf(TAG, "🎵 TikTok模式功能已$status")
+
+        // 通知所有监听器状态变化
+        notifyTiktokModeChanged(enabled)
+    }
+
+    private fun notifyTiktokModeChanged(enabled: Boolean) {
+        try {
+            val intent = Intent("com.example.bluetoothkeymapper.TIKTOK_MODE_CHANGED")
+            intent.putExtra("enabled", enabled)
+            sendBroadcast(intent)
+            Log.d(TAG, "已发送TikTok模式状态变化广播: $enabled")
+        } catch (e: Exception) {
+            Log.e(TAG, "发送TikTok模式状态变化广播失败: ${e.message}")
+        }
+    }
+
+    fun isTiktokModeEnabled(): Boolean {
+        return isTiktokModeEnabled
+    }
+
+    private fun performTiktokUpSwipe() {
+        if (!isTiktokServiceEnabled()) {
+            Log.d(TAG, "TikTok服务已关闭，忽略上滑手势")
+            return
+        }
+
+        val swipePixels = getSwipePixels()
+        val path = Path().apply {
+            val centerX = screenWidth / 2f
+            val centerY = screenHeight / 2f
+            val startY = centerY
+            val endY = centerY - swipePixels.toFloat()  // 向上滑动客制化像素
+            moveTo(centerX, startY)
+            lineTo(centerX, endY)
+        }
+        performTiktokSwipeGesture(path)
+        Log.d(TAG, "执行TikTok上滑手势: 从屏幕中心向上滑动${swipePixels}px")
+    }
+
+    private fun performTiktokDownSwipe() {
+        if (!isTiktokServiceEnabled()) {
+            Log.d(TAG, "TikTok服务已关闭，忽略下滑手势")
+            return
+        }
+
+        val swipePixels = getSwipePixels()
+        val path = Path().apply {
+            val centerX = screenWidth / 2f
+            val centerY = screenHeight / 2f
+            val startY = centerY
+            val endY = centerY + swipePixels.toFloat()  // 向下滑动客制化像素
+            moveTo(centerX, startY)
+            lineTo(centerX, endY)
+        }
+        performTiktokSwipeGesture(path)
+        Log.d(TAG, "执行TikTok下滑手势: 从屏幕中心向下滑动${swipePixels}px")
+    }
+
+    private fun performTiktokCenterClick() {
+        if (!isTiktokServiceEnabled()) {
+            Log.d(TAG, "TikTok服务已关闭，忽略中心点击手势")
+            return
+        }
+
+        val centerX = screenWidth / 2f
+        val centerY = screenHeight / 2f
+
+        val path = Path().apply {
+            moveTo(centerX, centerY)
+            lineTo(centerX, centerY)  // 点击手势，起始和结束位置相同
+        }
+        performTiktokClickGesture(path)
+        Log.d(TAG, "执行TikTok屏幕中心点击: 位置(${centerX},${centerY})")
+    }
+
+    private fun performTiktokSwipeGesture(path: Path) {
+        val gestureBuilder = GestureDescription.Builder()
+        val strokeDescription = GestureDescription.StrokeDescription(path, 0, 300L)
+        gestureBuilder.addStroke(strokeDescription)
+
+        val gesture = gestureBuilder.build()
+        dispatchGesture(gesture, object : GestureResultCallback() {
+            override fun onCompleted(gestureDescription: GestureDescription?) {
+                super.onCompleted(gestureDescription)
+                Log.d(TAG, "TikTok手势执行完成")
+            }
+
+            override fun onCancelled(gestureDescription: GestureDescription?) {
+                super.onCancelled(gestureDescription)
+                Log.d(TAG, "TikTok手势执行被取消")
+            }
+        }, null)
+    }
+
+    private fun performTiktokClickGesture(path: Path) {
+        val gestureBuilder = GestureDescription.Builder()
+        val strokeDescription = GestureDescription.StrokeDescription(path, 0, 100L)
+        gestureBuilder.addStroke(strokeDescription)
+
+        val gesture = gestureBuilder.build()
+        dispatchGesture(gesture, object : GestureResultCallback() {
+            override fun onCompleted(gestureDescription: GestureDescription?) {
+                super.onCompleted(gestureDescription)
+                Log.d(TAG, "TikTok点击手势执行完成")
+            }
+
+            override fun onCancelled(gestureDescription: GestureDescription?) {
+                super.onCancelled(gestureDescription)
+                Log.d(TAG, "TikTok点击手势执行被取消")
+            }
+        }, null)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         instance = null
