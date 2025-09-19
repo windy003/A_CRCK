@@ -200,33 +200,45 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 }
             }
             
-            // 处理dpad down键 - 映射为按键c，用于打开/关闭YouTube CC字幕
+            // 处理dpad down键 - 根据模式进行不同映射
             KeyEvent.KEYCODE_DPAD_DOWN -> {  // 20 方向键下
                 Log.e(TAG, "!!! 检测到dpad down按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    Log.e(TAG, "执行点击CC按钮操作 - 打开/关闭YouTube CC字幕")
-                    sendKeyC()
-                    Log.e(TAG, "CC按钮点击操作完成")
+                    if (isTiktokModeEnabled) {
+                        // TikTok模式：禁用下方向键功能
+                        Log.e(TAG, "TikTok模式 - 下方向键功能已禁用")
+                        return true // 拦截事件但不执行任何操作
+                    } else {
+                        Log.e(TAG, "执行点击CC按钮操作 - 打开/关闭YouTube CC字幕")
+                        sendKeyC()
+                        Log.e(TAG, "CC按钮点击操作完成")
+                    }
                 }
                 return true // 拦截原始事件
             }
 
-            // 处理dpad up键 - 映射为单击屏幕坐标(520,107)，只在横屏模式下生效
+            // 处理dpad up键 - 根据模式进行不同映射
             KeyEvent.KEYCODE_DPAD_UP -> {  // 19 方向键上
                 Log.e(TAG, "!!! 检测到dpad up按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    // 检查屏幕方向，只在横屏模式下执行
-                    val orientation = resources.configuration.orientation
-                    val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
-
-                    if (isLandscape) {
-                        Log.e(TAG, "横屏模式 - 执行单击屏幕坐标(520,107)操作")
-                        performSingleClick(520f, 107f)
-                        Log.e(TAG, "单击操作完成")
+                    if (isTiktokModeEnabled) {
+                        // TikTok模式：禁用上方向键功能
+                        Log.e(TAG, "TikTok模式 - 上方向键功能已禁用")
+                        return true // 拦截事件但不执行任何操作
                     } else {
-                        Log.w(TAG, "竖屏模式 - 上方向键功能已禁用，只在横屏模式下生效")
+                        // 检查屏幕方向，只在横屏模式下执行
+                        val orientation = resources.configuration.orientation
+                        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+                        if (isLandscape) {
+                            Log.e(TAG, "横屏模式 - 执行单击屏幕坐标(520,107)操作")
+                            performSingleClick(520f, 107f)
+                            Log.e(TAG, "单击操作完成")
+                        } else {
+                            Log.w(TAG, "竖屏模式 - 上方向键功能已禁用，只在横屏模式下生效")
+                        }
                     }
                 }
                 return true // 拦截原始事件
@@ -783,6 +795,8 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         Log.e(TAG, "当前状态: $status")
         Log.e(TAG, "dpad left键映射: ${if (isTiktokModeEnabled) "从(566,2213)左滑" else "原有功能"}")
         Log.e(TAG, "dpad right键映射: ${if (isTiktokModeEnabled) "从(566,2213)右滑" else "原有功能"}")
+        Log.e(TAG, "dpad up键映射: ${if (isTiktokModeEnabled) "已禁用" else "原有功能"}")
+        Log.e(TAG, "dpad down键映射: ${if (isTiktokModeEnabled) "已禁用" else "原有功能"}")
         Log.e(TAG, "OK键映射: ${if (isTiktokModeEnabled) "屏幕中心点击" else "原有功能"}")
         Log.e(TAG, "Home键映射: ${if (isTiktokModeEnabled) "进度条重置从(900,2213)到(0,2213)" else "原有功能"}")
         Log.e(TAG, "===============================")
