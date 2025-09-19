@@ -397,21 +397,32 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     private fun sendKeyC() {
         try {
             Log.e(TAG, "模拟点击CC按钮...")
-            
+
             // 根据电视模式状态选择坐标
             val x: Float
             val y: Float
-            
+
             if (isTvModeEnabled) {
-                // 电视模式：使用固定的电视坐标 (20.5:9 全屏模式)
-                x = 1740f
-                y = 95f
-                Log.e(TAG, "电视模式已启用，使用电视坐标: ($x, $y)")
+                // 电视模式：根据屏幕方向选择不同坐标
+                val orientation = resources.configuration.orientation
+                val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+
+                if (isPortrait) {
+                    // 电视模式竖屏坐标
+                    x = 888f
+                    y = 163f
+                    Log.e(TAG, "电视模式竖屏 - 使用坐标: ($x, $y)")
+                } else {
+                    // 电视模式横屏坐标 (20.5:9 全屏模式)
+                    x = 1740f
+                    y = 95f
+                    Log.e(TAG, "电视模式横屏 - 使用坐标: ($x, $y)")
+                }
             } else {
                 // 正常模式：检测屏幕方向选择对应的坐标
                 val orientation = resources.configuration.orientation
                 val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
-                
+
                 if (isPortrait) {
                     // 竖屏坐标
                     x = 876f
@@ -424,11 +435,11 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                     Log.e(TAG, "正常模式 - 检测到横屏，使用坐标: ($x, $y)")
                 }
             }
-            
+
             // 执行单击CC按钮
             performSingleClick(x, y)
             Log.e(TAG, "CC按钮点击操作完成")
-            
+
         } catch (e: Exception) {
             Log.e(TAG, "模拟点击CC按钮失败: ${e.message}")
         }
