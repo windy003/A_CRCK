@@ -250,7 +250,21 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 Log.e(TAG, "!!! 检测到Menu按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (isDoubleClickMappingEnabled) {
+                    if (isTvModeEnabled) {
+                        // 电视模式：根据屏幕方向进行不同映射
+                        val orientation = resources.configuration.orientation
+                        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+                        if (isLandscape) {
+                            Log.e(TAG, "电视模式横屏 - 发送返回按键")
+                            sendBackKey()
+                            Log.e(TAG, "电视模式返回按键发送完成")
+                        } else {
+                            Log.e(TAG, "电视模式竖屏 - 执行下一曲操作")
+                            sendMediaNext()
+                            Log.e(TAG, "电视模式下一曲操作完成")
+                        }
+                    } else if (isDoubleClickMappingEnabled) {
                         // YouTube模式：横屏模式下发送返回键，竖屏模式下执行下一曲
                         val orientation = resources.configuration.orientation
                         val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
