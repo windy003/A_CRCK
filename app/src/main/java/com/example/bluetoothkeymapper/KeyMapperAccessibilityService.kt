@@ -128,7 +128,22 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 Log.e(TAG, "!!! 检测到dpad left按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (isBaiduModeEnabled) {
+                    if (isTvModeEnabled) {
+                        // 电视模式：根据屏幕方向选择不同坐标
+                        val orientation = resources.configuration.orientation
+                        val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+
+                        if (isPortrait) {
+                            Log.e(TAG, "电视模式竖屏 - 执行双击屏幕坐标(201,253)操作")
+                            performDoubleClick(201f, 253f)
+                            Log.e(TAG, "电视模式竖屏双击操作完成")
+                        } else {
+                            Log.e(TAG, "电视模式横屏 - 执行双击屏幕坐标(133,439)操作")
+                            performDoubleClick(133f, 439f)
+                            Log.e(TAG, "电视模式横屏双击操作完成")
+                        }
+                        return true
+                    } else if (isBaiduModeEnabled) {
                         Log.e(TAG, "百度网盘模式 - 执行上一曲操作")
                         sendMediaPrevious()
                         Log.e(TAG, "上一曲操作完成")
@@ -143,7 +158,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                         return super.onKeyEvent(event) // 不拦截，让系统处理原有功能
                     }
                 } else {
-                    return if (isBaiduModeEnabled || isDoubleClickMappingEnabled) true else super.onKeyEvent(event)
+                    return if (isTvModeEnabled || isBaiduModeEnabled || isDoubleClickMappingEnabled) true else super.onKeyEvent(event)
                 }
             }
             
