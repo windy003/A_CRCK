@@ -279,7 +279,21 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 Log.e(TAG, "!!! 检测到dpad right按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (isBaiduModeEnabled) {
+                    if (isTvModeEnabled) {
+                        // 电视模式：根据屏幕方向选择不同坐标
+                        val orientation = resources.configuration.orientation
+                        val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+
+                        if (isPortrait) {
+                            Log.e(TAG, "电视模式竖屏 - 执行双击屏幕坐标(810,265)操作")
+                            performDoubleClick(810f, 265f)
+                            Log.e(TAG, "电视模式竖屏双击操作完成")
+                        } else {
+                            Log.e(TAG, "电视模式横屏 - 执行双击屏幕坐标(1780,355)操作")
+                            performDoubleClick(1780f, 355f)
+                            Log.e(TAG, "电视模式横屏双击操作完成")
+                        }
+                    } else if (isBaiduModeEnabled) {
                         Log.e(TAG, "百度网盘模式 - 执行下一曲操作")
                         sendMediaNext()
                         Log.e(TAG, "下一曲操作完成")
