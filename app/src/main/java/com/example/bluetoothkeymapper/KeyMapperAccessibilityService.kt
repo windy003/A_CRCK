@@ -209,6 +209,16 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                         // TikTok模式：禁用下方向键功能
                         Log.e(TAG, "TikTok模式 - 下方向键功能已禁用")
                         return true // 拦截事件但不执行任何操作
+                    } else if (isTvModeEnabled) {
+                        // 电视模式：执行单击屏幕坐标(133,439) - 显示/隐藏控制器
+                        Log.e(TAG, "电视模式 - 执行单击屏幕坐标(133,439)操作 - 显示/隐藏控制器")
+                        performSingleClick(133f, 439f)
+                        Log.e(TAG, "电视模式单击操作完成")
+                    } else if (isDoubleClickMappingEnabled) {
+                        // YouTube模式：执行单击屏幕坐标(133,439) - 显示/隐藏控制器
+                        Log.e(TAG, "YouTube模式 - 执行单击屏幕坐标(133,439)操作 - 显示/隐藏控制器")
+                        performSingleClick(133f, 439f)
+                        Log.e(TAG, "YouTube模式下方向键操作完成")
                     } else {
                         Log.e(TAG, "执行点击CC按钮操作 - 打开/关闭YouTube CC字幕")
                         sendKeyC()
@@ -244,14 +254,26 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
             
-            // 处理返回按键 - 映射为单击屏幕坐标(133,439)显示/隐藏控制器
+            // 处理返回按键 - 根据模式进行不同映射
             KeyEvent.KEYCODE_BACK -> {  // 4 返回键
                 Log.e(TAG, "!!! 检测到返回按键: ${event.keyCode} !!!")
-                
+
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    Log.e(TAG, "执行单击屏幕坐标(133,439)操作 - 显示/隐藏控制器")
-                    performSingleClick(133f, 439f)
-                    Log.e(TAG, "单击操作完成")
+                    if (isTvModeEnabled) {
+                        // 电视模式：点击CC按钮操作，使用电视模式坐标
+                        Log.e(TAG, "电视模式 - 执行点击CC按钮操作")
+                        sendKeyC()
+                        Log.e(TAG, "电视模式CC按钮点击操作完成")
+                    } else if (isDoubleClickMappingEnabled) {
+                        // YouTube模式：点击CC按钮操作 - 打开/隐藏字幕
+                        Log.e(TAG, "YouTube模式 - 执行点击CC按钮操作 - 打开/隐藏字幕")
+                        sendKeyC()
+                        Log.e(TAG, "YouTube模式返回键CC操作完成")
+                    } else {
+                        Log.e(TAG, "执行单击屏幕坐标(133,439)操作 - 显示/隐藏控制器")
+                        performSingleClick(133f, 439f)
+                        Log.e(TAG, "单击操作完成")
+                    }
                 }
                 return true // 拦截原始事件
             }
