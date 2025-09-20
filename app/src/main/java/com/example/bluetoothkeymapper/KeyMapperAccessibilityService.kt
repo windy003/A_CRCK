@@ -260,15 +260,15 @@ class KeyMapperAccessibilityService : AccessibilityService() {
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
                     if (isTvModeEnabled) {
-                        // 电视模式：点击CC按钮操作，使用电视模式坐标
-                        Log.e(TAG, "电视模式 - 执行点击CC按钮操作")
-                        sendKeyC()
-                        Log.e(TAG, "电视模式CC按钮点击操作完成")
+                        // 电视模式：显示/隐藏控制器
+                        Log.e(TAG, "电视模式 - 执行显示/隐藏控制器操作")
+                        performSingleClick(133f, 439f)
+                        Log.e(TAG, "电视模式返回键显示/隐藏控制器操作完成")
                     } else if (isDoubleClickMappingEnabled) {
-                        // YouTube模式：点击CC按钮操作 - 打开/隐藏字幕
-                        Log.e(TAG, "YouTube模式 - 执行点击CC按钮操作 - 打开/隐藏字幕")
-                        sendKeyC()
-                        Log.e(TAG, "YouTube模式返回键CC操作完成")
+                        // YouTube模式：显示/隐藏控制器
+                        Log.e(TAG, "YouTube模式 - 执行显示/隐藏控制器操作")
+                        performSingleClick(133f, 439f)
+                        Log.e(TAG, "YouTube模式返回键显示/隐藏控制器操作完成")
                     } else {
                         Log.e(TAG, "执行单击屏幕坐标(133,439)操作 - 显示/隐藏控制器")
                         performSingleClick(133f, 439f)
@@ -295,23 +295,31 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                         val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
 
                         if (isPortrait) {
+                            // 竖屏时：执行相应的点击
                             Log.e(TAG, "电视模式竖屏 - 执行单击屏幕坐标(995,634)操作")
                             performSingleClick(995f, 634f)
                             Log.e(TAG, "电视模式竖屏单击操作完成")
                         } else {
-                            Log.w(TAG, "电视模式横屏 - Home键功能已禁用")
+                            // 横屏时：映射为返回键
+                            Log.e(TAG, "电视模式横屏 - Home键映射为返回键功能")
+                            sendBackKey()
+                            Log.e(TAG, "电视模式横屏返回键操作完成")
                         }
                     } else if (isDoubleClickMappingEnabled) {
-                        // YouTube模式：竖屏模式下点击坐标(841,623)，横屏模式下忽略
+                        // YouTube模式：根据屏幕方向处理
                         val orientation = resources.configuration.orientation
                         val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
 
                         if (isPortrait) {
+                            // 竖屏时：执行相应的点击
                             Log.e(TAG, "YouTube模式竖屏 - 执行单击屏幕坐标(1050,620)操作")
                             performSingleClick(1050f, 620f)
-                            Log.e(TAG, "竖屏模式单击操作完成")
+                            Log.e(TAG, "YouTube模式竖屏单击操作完成")
                         } else {
-                            Log.w(TAG, "YouTube模式横屏 - Home键功能已禁用")
+                            // 横屏时：映射为返回键
+                            Log.e(TAG, "YouTube模式横屏 - Home键映射为返回键功能")
+                            sendBackKey()
+                            Log.e(TAG, "YouTube模式横屏返回键操作完成")
                         }
                     } else {
                         // 非YouTube模式：执行上一曲操作
@@ -329,33 +337,15 @@ class KeyMapperAccessibilityService : AccessibilityService() {
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
                     if (isTvModeEnabled) {
-                        // 电视模式：根据屏幕方向进行不同映射
-                        val orientation = resources.configuration.orientation
-                        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
-
-                        if (isLandscape) {
-                            Log.e(TAG, "电视模式横屏 - 发送返回按键")
-                            sendBackKey()
-                            Log.e(TAG, "电视模式返回按键发送完成")
-                        } else {
-                            Log.e(TAG, "电视模式竖屏 - 执行下一曲操作")
-                            sendMediaNext()
-                            Log.e(TAG, "电视模式下一曲操作完成")
-                        }
+                        // 电视模式：显示/隐藏字幕
+                        Log.e(TAG, "电视模式 - 执行显示/隐藏字幕操作")
+                        sendKeyC()
+                        Log.e(TAG, "电视模式Menu键显示/隐藏字幕操作完成")
                     } else if (isDoubleClickMappingEnabled) {
-                        // YouTube模式：横屏模式下发送返回键，竖屏模式下执行下一曲
-                        val orientation = resources.configuration.orientation
-                        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
-
-                        if (isLandscape) {
-                            Log.e(TAG, "YouTube模式横屏 - 发送返回按键")
-                            sendBackKey()
-                            Log.e(TAG, "返回按键发送完成")
-                        } else {
-                            Log.e(TAG, "YouTube模式竖屏 - 执行下一曲操作")
-                            sendMediaNext()
-                            Log.e(TAG, "下一曲操作完成")
-                        }
+                        // YouTube模式：显示/隐藏字幕
+                        Log.e(TAG, "YouTube模式 - 执行显示/隐藏字幕操作")
+                        sendKeyC()
+                        Log.e(TAG, "YouTube模式Menu键显示/隐藏字幕操作完成")
                     } else {
                         // 非YouTube模式：执行下一曲操作
                         Log.e(TAG, "普通模式 - 执行下一曲操作")
