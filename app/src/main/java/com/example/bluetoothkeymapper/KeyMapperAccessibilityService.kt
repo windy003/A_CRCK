@@ -25,6 +25,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     private var currentForegroundApp = "" // 当前前台应用包名
     private var isAutoModeEnabled = true // 自动模式切换开关
     private var lastTargetAppMode = "" // 上次使用的目标应用模式
+    private var lastTargetAppTime = 0L // 上次使用目标应用的时间
     
     companion object {
         private const val TAG = "KeyMapperAccessibility"
@@ -186,8 +187,14 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                     }
                 }
                 "youtube" -> {
-                    if (isDoubleClickMappingEnabled) {
+                    if (isDoubleClickMappingEnabled && !isTvModeEnabled && !isBaiduModeEnabled && !isTiktokModeEnabled) {
                         Log.e(TAG, "保持YouTube模式，因为用户刚刚使用了YouTube")
+                        return
+                    }
+                }
+                "tv" -> {
+                    if (!isDoubleClickMappingEnabled && isTvModeEnabled && !isBaiduModeEnabled && !isTiktokModeEnabled) {
+                        Log.e(TAG, "保持电视模式，因为用户刚刚使用了YouTube(16:9)")
                         return
                     }
                 }
@@ -196,26 +203,37 @@ class KeyMapperAccessibilityService : AccessibilityService() {
 
         val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
+        // 如果有特定应用模式记录且时间较近（30秒内），不要根据屏幕比例切换
+        val currentTime = System.currentTimeMillis()
+        if (lastTargetAppMode.isNotEmpty() && (currentTime - lastTargetAppTime) < 30000) {
+            Log.e(TAG, "有特定应用模式记录且时间较近(${(currentTime - lastTargetAppTime)/1000}秒前)，跳过屏幕比例切换")
+            return
+        } else if (lastTargetAppMode.isNotEmpty()) {
+            Log.e(TAG, "特定应用模式记录已过期(${(currentTime - lastTargetAppTime)/1000}秒前)，清除记录")
+            lastTargetAppMode = ""
+            lastTargetAppTime = 0L
+        }
+
         // 20:9 ≈ 2.22, 16:9 ≈ 1.78
         when {
             aspectRatio >= 2.1f -> {
-                // 20:9屏幕 - 只有在没有特定应用模式时才切换到YouTube模式
-                Log.e(TAG, "检测到20:9屏幕，考虑切换到YouTube模式")
+                // 20:9屏幕 - 只有在没有任何模式时才切换到默认YouTube模式
+                Log.e(TAG, "检测到20:9屏幕，考虑切换到默认YouTube模式")
                 if (!isDoubleClickMappingEnabled && !isTvModeEnabled && !isBaiduModeEnabled && !isTiktokModeEnabled) {
                     Log.e(TAG, "切换到默认YouTube模式")
                     switchToMode("youtube")
-                    lastTargetAppMode = "" // 清除记录，因为这是默认模式
+                    // 不设置lastTargetAppMode，因为这是屏幕比例的默认选择
                 } else {
                     Log.e(TAG, "已有激活模式，不切换")
                 }
             }
             aspectRatio >= 1.6f && aspectRatio < 2.0f -> {
-                // 16:9屏幕 - 只有在没有特定应用模式时才切换到电视模式
-                Log.e(TAG, "检测到16:9屏幕，考虑切换到电视模式")
+                // 16:9屏幕 - 只有在没有任何模式时才切换到默认电视模式
+                Log.e(TAG, "检测到16:9屏幕，考虑切换到默认电视模式")
                 if (!isDoubleClickMappingEnabled && !isTvModeEnabled && !isBaiduModeEnabled && !isTiktokModeEnabled) {
                     Log.e(TAG, "切换到默认电视模式")
                     switchToMode("tv")
-                    lastTargetAppMode = "" // 清除记录，因为这是默认模式
+                    // 不设置lastTargetAppMode，因为这是屏幕比例的默认选择
                 } else {
                     Log.e(TAG, "已有激活模式，不切换")
                 }
@@ -248,17 +266,42 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         when (packageName) {
             YOUTUBE_PACKAGE, YOUTUBE_MUSIC_PACKAGE -> {
                 Log.e(TAG, "匹配到YouTube应用")
-                lastTargetAppMode = "youtube"
-                if (!isDoubleClickMappingEnabled || isTvModeEnabled || isBaiduModeEnabled || isTiktokModeEnabled) {
-                    Log.e(TAG, "需要切换到YouTube模式")
-                    switchToMode("youtube")
+
+                // 根据屏幕比例决定YouTube使用哪种模式
+                val aspectRatio = if (screenWidth > screenHeight) {
+                    screenWidth.toFloat() / screenHeight.toFloat()
                 } else {
-                    Log.e(TAG, "已经是YouTube模式，无需切换")
+                    screenHeight.toFloat() / screenWidth.toFloat()
+                }
+
+                if (aspectRatio >= 1.6f && aspectRatio < 2.0f) {
+                    // 16:9屏幕 - YouTube使用电视模式
+                    Log.e(TAG, "16:9屏幕上的YouTube，切换到电视模式")
+                    lastTargetAppMode = "tv"
+                    lastTargetAppTime = System.currentTimeMillis()
+                    if (isDoubleClickMappingEnabled || !isTvModeEnabled || isBaiduModeEnabled || isTiktokModeEnabled) {
+                        Log.e(TAG, "需要切换到电视模式")
+                        switchToMode("tv")
+                    } else {
+                        Log.e(TAG, "已经是电视模式，无需切换")
+                    }
+                } else {
+                    // 20:9或其他屏幕 - YouTube使用普通模式
+                    Log.e(TAG, "20:9屏幕上的YouTube，切换到YouTube模式")
+                    lastTargetAppMode = "youtube"
+                    lastTargetAppTime = System.currentTimeMillis()
+                    if (!isDoubleClickMappingEnabled || isTvModeEnabled || isBaiduModeEnabled || isTiktokModeEnabled) {
+                        Log.e(TAG, "需要切换到YouTube模式")
+                        switchToMode("youtube")
+                    } else {
+                        Log.e(TAG, "已经是YouTube模式，无需切换")
+                    }
                 }
             }
             TIKTOK_PACKAGE, TIKTOK_LITE_PACKAGE, DOUYIN_PACKAGE, DOUYIN_LITE_PACKAGE -> {
                 Log.e(TAG, "匹配到TikTok/抖音应用")
                 lastTargetAppMode = "tiktok"
+                lastTargetAppTime = System.currentTimeMillis()
                 if (isDoubleClickMappingEnabled || isTvModeEnabled || isBaiduModeEnabled || !isTiktokModeEnabled) {
                     Log.e(TAG, "需要切换到TikTok模式")
                     switchToMode("tiktok")
@@ -269,6 +312,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             BAIDU_DISK_PACKAGE -> {
                 Log.e(TAG, "匹配到百度网盘应用")
                 lastTargetAppMode = "baidu"
+                lastTargetAppTime = System.currentTimeMillis()
                 if (isDoubleClickMappingEnabled || isTvModeEnabled || !isBaiduModeEnabled || isTiktokModeEnabled) {
                     Log.e(TAG, "需要切换到百度网盘模式")
                     switchToMode("baidu")
@@ -1124,6 +1168,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
 
     fun clearLastTargetAppMode() {
         lastTargetAppMode = ""
+        lastTargetAppTime = 0L
         Log.e(TAG, "已清除上次目标应用模式记录")
     }
 
