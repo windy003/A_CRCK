@@ -59,14 +59,15 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         Log.e(TAG, "可处理事件类型: ${serviceInfo?.eventTypes}")
         Log.e(TAG, "可过滤按键事件: ${serviceInfo?.flags?.and(android.accessibilityservice.AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS) != 0}")
 
-        // 获取屏幕尺寸
+        // 获取屏幕尺寸并自动检测比例
         getScreenDimensions()
-        
+
         // 测试日志输出
         android.os.Handler().postDelayed({
             Log.e(TAG, "无障碍服务准备就绪，开始监听所有按键事件")
             Log.e(TAG, "映射模式: 媒体播放暂停键 + 双击屏幕映射")
             Log.e(TAG, "双击映射功能状态: ${if (isDoubleClickMappingEnabled) "开启" else "关闭"}")
+            Log.e(TAG, "电视模式状态: ${if (isTvModeEnabled) "开启" else "关闭"}")
             Log.i(TAG, "dpad left: 双击屏幕坐标(133,439)")
             Log.i(TAG, "dpad right: 双击屏幕坐标 (竖屏810,265 / 横屏1940,384)")
             Log.i(TAG, "dpad down: 点击CC按钮 (竖屏876,154 / 横屏2273,88)")
@@ -75,9 +76,19 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             Log.i(TAG, "move home key (122): 上一曲按键")
             Log.i(TAG, "menu key: 下一曲按键")
             Log.i(TAG, "请按下蓝牙遥控器按键进行测试")
-            Log.i(TAG, "提示: 可在APP界面切换双击映射功能开关")
+            Log.i(TAG, "提示: 系统会根据屏幕比例自动切换模式")
             android.util.Log.wtf(TAG, "最高级别日志：等待按键事件...")
         }, 1000)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        Log.d(TAG, "配置发生变化，重新检测屏幕比例")
+
+        // 延迟一下再获取屏幕尺寸，确保配置变化完成
+        android.os.Handler().postDelayed({
+            getScreenDimensions()
+        }, 100)
     }
     
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -92,6 +103,84 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         screenWidth = displayMetrics.widthPixels
         screenHeight = displayMetrics.heightPixels
         Log.d(TAG, "屏幕尺寸: ${screenWidth}x${screenHeight}")
+
+        // 检测屏幕比例并自动切换模式
+        checkAndSwitchModeByAspectRatio()
+    }
+
+    private fun checkAndSwitchModeByAspectRatio() {
+        val aspectRatio = if (screenWidth > screenHeight) {
+            screenWidth.toFloat() / screenHeight.toFloat()
+        } else {
+            screenHeight.toFloat() / screenWidth.toFloat()
+        }
+
+        Log.d(TAG, "检测到屏幕比例: $aspectRatio")
+
+        val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+        // 20:9 ≈ 2.22, 16:9 ≈ 1.78
+        when {
+            aspectRatio >= 2.1f -> {
+                // 20:9屏幕 - 自动使用普通油管模式
+                Log.d(TAG, "检测到20:9屏幕，自动启用普通油管模式")
+                if (!isDoubleClickMappingEnabled || isTvModeEnabled) {
+                    isDoubleClickMappingEnabled = true
+                    isTvModeEnabled = false
+                    isBaiduModeEnabled = false
+                    isTiktokModeEnabled = false
+
+                    // 保存到SharedPreferences
+                    sharedPreferences.edit()
+                        .putBoolean(PREF_YOUTUBE_MODE_ENABLED, true)
+                        .putBoolean(PREF_TV_MODE_ENABLED, false)
+                        .putBoolean(PREF_BAIDU_MODE_ENABLED, false)
+                        .putBoolean(PREF_TIKTOK_MODE_ENABLED, false)
+                        .apply()
+
+                    // 发送广播通知主界面更新
+                    sendModeChangeBroadcast("com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED", true)
+                    sendModeChangeBroadcast("com.example.bluetoothkeymapper.TV_MODE_CHANGED", false)
+
+                    Log.d(TAG, "已自动切换到普通油管模式")
+                }
+            }
+            aspectRatio >= 1.6f && aspectRatio < 2.0f -> {
+                // 16:9屏幕 - 自动使用电视模式
+                Log.d(TAG, "检测到16:9屏幕，自动启用电视模式")
+                if (isDoubleClickMappingEnabled || !isTvModeEnabled) {
+                    isDoubleClickMappingEnabled = false
+                    isTvModeEnabled = true
+                    isBaiduModeEnabled = false
+                    isTiktokModeEnabled = false
+
+                    // 保存到SharedPreferences
+                    sharedPreferences.edit()
+                        .putBoolean(PREF_YOUTUBE_MODE_ENABLED, false)
+                        .putBoolean(PREF_TV_MODE_ENABLED, true)
+                        .putBoolean(PREF_BAIDU_MODE_ENABLED, false)
+                        .putBoolean(PREF_TIKTOK_MODE_ENABLED, false)
+                        .apply()
+
+                    // 发送广播通知主界面更新
+                    sendModeChangeBroadcast("com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED", false)
+                    sendModeChangeBroadcast("com.example.bluetoothkeymapper.TV_MODE_CHANGED", true)
+
+                    Log.d(TAG, "已自动切换到电视模式")
+                }
+            }
+            else -> {
+                Log.d(TAG, "未知屏幕比例 ($aspectRatio)，保持当前模式")
+            }
+        }
+    }
+
+    private fun sendModeChangeBroadcast(action: String, enabled: Boolean) {
+        val intent = Intent(action)
+        intent.putExtra("enabled", enabled)
+        intent.setPackage(packageName)
+        sendBroadcast(intent)
+        Log.d(TAG, "已发送模式状态变化广播: $action = $enabled")
     }
 
     private fun getSwipePixels(): Int {
