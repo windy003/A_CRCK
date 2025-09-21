@@ -24,6 +24,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     private var screenHeight = 0 // 屏幕高度
     private var currentForegroundApp = "" // 当前前台应用包名
     private var isAutoModeEnabled = true // 自动模式切换开关
+    private var lastTargetAppMode = "" // 上次使用的目标应用模式
     
     companion object {
         private const val TAG = "KeyMapperAccessibility"
@@ -42,6 +43,22 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         private const val DOUYIN_PACKAGE = "com.ss.android.ugc.aweme"
         private const val DOUYIN_LITE_PACKAGE = "com.ss.android.ugc.aweme.lite"
         private const val BAIDU_DISK_PACKAGE = "com.baidu.netdisk"
+
+        // 系统应用和桌面应用，不应该触发模式切换
+        private val SYSTEM_PACKAGES = setOf(
+            "com.android.systemui",
+            "com.lge.launcher3",
+            "com.android.launcher",
+            "com.huawei.android.launcher",
+            "com.xiaomi.launcher",
+            "com.oppo.launcher",
+            "com.vivo.launcher",
+            "com.samsung.android.launcher",
+            "com.lge.displayfingerprint",
+            "com.example.bluetoothkeymapper", // 自己的应用
+            "android",
+            "com.android.settings"
+        )
     }
     
     override fun onCreate() {
@@ -104,7 +121,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     }
     
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event == null || !isAutoModeEnabled) return
+        if (event == null) return
 
         // 监听窗口状态变化事件，检测前台应用切换
         when (event.eventType) {
@@ -112,10 +129,18 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 val packageName = event.packageName?.toString()
                 if (!packageName.isNullOrEmpty() && packageName != currentForegroundApp) {
                     currentForegroundApp = packageName
-                    Log.d(TAG, "检测到前台应用切换: $packageName")
+                    Log.e(TAG, "=== 前台应用切换 ===")
+                    Log.e(TAG, "新应用: $packageName")
+                    Log.e(TAG, "自动模式: ${if (isAutoModeEnabled) "开启" else "关闭"}")
 
-                    // 根据应用包名自动切换模式
-                    checkAndSwitchModeByApp(packageName)
+                    if (isAutoModeEnabled) {
+                        Log.e(TAG, "执行自动模式切换...")
+                        // 根据应用包名自动切换模式
+                        checkAndSwitchModeByApp(packageName)
+                    } else {
+                        Log.e(TAG, "自动模式已关闭，跳过模式切换")
+                    }
+                    Log.e(TAG, "==================")
                 }
             }
         }
@@ -142,132 +167,159 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             screenHeight.toFloat() / screenWidth.toFloat()
         }
 
-        Log.d(TAG, "检测到屏幕比例: $aspectRatio")
+        Log.e(TAG, "检测到屏幕比例: $aspectRatio")
+        Log.e(TAG, "上次目标应用模式: $lastTargetAppMode")
+
+        // 如果用户刚刚使用了特定应用模式，保持不变
+        if (lastTargetAppMode.isNotEmpty()) {
+            when (lastTargetAppMode) {
+                "tiktok" -> {
+                    if (isTiktokModeEnabled) {
+                        Log.e(TAG, "保持TikTok模式，因为用户刚刚使用了TikTok")
+                        return
+                    }
+                }
+                "baidu" -> {
+                    if (isBaiduModeEnabled) {
+                        Log.e(TAG, "保持百度网盘模式，因为用户刚刚使用了百度网盘")
+                        return
+                    }
+                }
+                "youtube" -> {
+                    if (isDoubleClickMappingEnabled) {
+                        Log.e(TAG, "保持YouTube模式，因为用户刚刚使用了YouTube")
+                        return
+                    }
+                }
+            }
+        }
 
         val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
         // 20:9 ≈ 2.22, 16:9 ≈ 1.78
         when {
             aspectRatio >= 2.1f -> {
-                // 20:9屏幕 - 自动使用普通油管模式
-                Log.d(TAG, "检测到20:9屏幕，自动启用普通油管模式")
-                if (!isDoubleClickMappingEnabled || isTvModeEnabled) {
-                    isDoubleClickMappingEnabled = true
-                    isTvModeEnabled = false
-                    isBaiduModeEnabled = false
-                    isTiktokModeEnabled = false
-
-                    // 保存到SharedPreferences
-                    sharedPreferences.edit()
-                        .putBoolean(PREF_YOUTUBE_MODE_ENABLED, true)
-                        .putBoolean(PREF_TV_MODE_ENABLED, false)
-                        .putBoolean(PREF_BAIDU_MODE_ENABLED, false)
-                        .putBoolean(PREF_TIKTOK_MODE_ENABLED, false)
-                        .apply()
-
-                    // 发送广播通知主界面更新
-                    sendModeChangeBroadcast("com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED", true)
-                    sendModeChangeBroadcast("com.example.bluetoothkeymapper.TV_MODE_CHANGED", false)
-
-                    Log.d(TAG, "已自动切换到普通油管模式")
+                // 20:9屏幕 - 只有在没有特定应用模式时才切换到YouTube模式
+                Log.e(TAG, "检测到20:9屏幕，考虑切换到YouTube模式")
+                if (!isDoubleClickMappingEnabled && !isTvModeEnabled && !isBaiduModeEnabled && !isTiktokModeEnabled) {
+                    Log.e(TAG, "切换到默认YouTube模式")
+                    switchToMode("youtube")
+                    lastTargetAppMode = "" // 清除记录，因为这是默认模式
+                } else {
+                    Log.e(TAG, "已有激活模式，不切换")
                 }
             }
             aspectRatio >= 1.6f && aspectRatio < 2.0f -> {
-                // 16:9屏幕 - 自动使用电视模式
-                Log.d(TAG, "检测到16:9屏幕，自动启用电视模式")
-                if (isDoubleClickMappingEnabled || !isTvModeEnabled) {
-                    isDoubleClickMappingEnabled = false
-                    isTvModeEnabled = true
-                    isBaiduModeEnabled = false
-                    isTiktokModeEnabled = false
-
-                    // 保存到SharedPreferences
-                    sharedPreferences.edit()
-                        .putBoolean(PREF_YOUTUBE_MODE_ENABLED, false)
-                        .putBoolean(PREF_TV_MODE_ENABLED, true)
-                        .putBoolean(PREF_BAIDU_MODE_ENABLED, false)
-                        .putBoolean(PREF_TIKTOK_MODE_ENABLED, false)
-                        .apply()
-
-                    // 发送广播通知主界面更新
-                    sendModeChangeBroadcast("com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED", false)
-                    sendModeChangeBroadcast("com.example.bluetoothkeymapper.TV_MODE_CHANGED", true)
-
-                    Log.d(TAG, "已自动切换到电视模式")
+                // 16:9屏幕 - 只有在没有特定应用模式时才切换到电视模式
+                Log.e(TAG, "检测到16:9屏幕，考虑切换到电视模式")
+                if (!isDoubleClickMappingEnabled && !isTvModeEnabled && !isBaiduModeEnabled && !isTiktokModeEnabled) {
+                    Log.e(TAG, "切换到默认电视模式")
+                    switchToMode("tv")
+                    lastTargetAppMode = "" // 清除记录，因为这是默认模式
+                } else {
+                    Log.e(TAG, "已有激活模式，不切换")
                 }
             }
             else -> {
-                Log.d(TAG, "未知屏幕比例 ($aspectRatio)，保持当前模式")
+                Log.e(TAG, "未知屏幕比例 ($aspectRatio)，保持当前模式")
             }
         }
     }
 
     private fun sendModeChangeBroadcast(action: String, enabled: Boolean) {
-        val intent = Intent(action)
-        intent.putExtra("enabled", enabled)
-        intent.setPackage(packageName)
-        sendBroadcast(intent)
-        Log.d(TAG, "已发送模式状态变化广播: $action = $enabled")
+        try {
+            val intent = Intent(action)
+            intent.putExtra("enabled", enabled)
+            intent.setPackage(packageName)
+            sendBroadcast(intent)
+            Log.e(TAG, "📡 发送广播成功: ${action.substringAfterLast(".")} = $enabled")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 发送广播失败: ${e.message}")
+        }
     }
 
     private fun checkAndSwitchModeByApp(packageName: String) {
         if (!isAutoModeEnabled) return
 
-        val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        Log.e(TAG, "=== 应用模式检查 ===")
+        Log.e(TAG, "包名: $packageName")
+        Log.e(TAG, "当前状态 - YouTube:$isDoubleClickMappingEnabled, TV:$isTvModeEnabled, Baidu:$isBaiduModeEnabled, TikTok:$isTiktokModeEnabled")
 
         when (packageName) {
             YOUTUBE_PACKAGE, YOUTUBE_MUSIC_PACKAGE -> {
-                // YouTube应用 - 切换到油管模式
+                Log.e(TAG, "匹配到YouTube应用")
+                lastTargetAppMode = "youtube"
                 if (!isDoubleClickMappingEnabled || isTvModeEnabled || isBaiduModeEnabled || isTiktokModeEnabled) {
-                    Log.d(TAG, "检测到YouTube应用，自动切换到油管模式")
+                    Log.e(TAG, "需要切换到YouTube模式")
                     switchToMode("youtube")
+                } else {
+                    Log.e(TAG, "已经是YouTube模式，无需切换")
                 }
             }
             TIKTOK_PACKAGE, TIKTOK_LITE_PACKAGE, DOUYIN_PACKAGE, DOUYIN_LITE_PACKAGE -> {
-                // TikTok/抖音应用 - 切换到TikTok模式
+                Log.e(TAG, "匹配到TikTok/抖音应用")
+                lastTargetAppMode = "tiktok"
                 if (isDoubleClickMappingEnabled || isTvModeEnabled || isBaiduModeEnabled || !isTiktokModeEnabled) {
-                    Log.d(TAG, "检测到TikTok/抖音应用，自动切换到TikTok模式")
+                    Log.e(TAG, "需要切换到TikTok模式")
                     switchToMode("tiktok")
+                } else {
+                    Log.e(TAG, "已经是TikTok模式，无需切换")
                 }
             }
             BAIDU_DISK_PACKAGE -> {
-                // 百度网盘应用 - 切换到百度网盘模式
+                Log.e(TAG, "匹配到百度网盘应用")
+                lastTargetAppMode = "baidu"
                 if (isDoubleClickMappingEnabled || isTvModeEnabled || !isBaiduModeEnabled || isTiktokModeEnabled) {
-                    Log.d(TAG, "检测到百度网盘应用，自动切换到百度网盘模式")
+                    Log.e(TAG, "需要切换到百度网盘模式")
                     switchToMode("baidu")
+                } else {
+                    Log.e(TAG, "已经是百度网盘模式，无需切换")
                 }
             }
             else -> {
-                // 其他应用 - 根据屏幕比例决定使用油管模式还是电视模式
-                Log.d(TAG, "检测到其他应用: $packageName，根据屏幕比例自动切换模式")
+                // 检查是否为系统应用或桌面
+                if (SYSTEM_PACKAGES.contains(packageName)) {
+                    Log.e(TAG, "检测到系统应用或桌面: $packageName，保持当前模式")
+                    return // 不切换模式
+                }
+
+                Log.e(TAG, "其他应用，根据屏幕比例自动切换")
                 checkAndSwitchModeByAspectRatio()
             }
         }
+        Log.e(TAG, "=================")
     }
 
     private fun switchToMode(mode: String) {
+        Log.e(TAG, "=== 开始切换模式 ===")
+        Log.e(TAG, "目标模式: $mode")
+
         val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
         when (mode) {
             "youtube" -> {
+                Log.e(TAG, "切换到YouTube模式...")
                 isDoubleClickMappingEnabled = true
                 isTvModeEnabled = false
                 isBaiduModeEnabled = false
                 isTiktokModeEnabled = false
 
-                sharedPreferences.edit()
+                val editor = sharedPreferences.edit()
                     .putBoolean(PREF_YOUTUBE_MODE_ENABLED, true)
                     .putBoolean(PREF_TV_MODE_ENABLED, false)
                     .putBoolean(PREF_BAIDU_MODE_ENABLED, false)
                     .putBoolean(PREF_TIKTOK_MODE_ENABLED, false)
-                    .apply()
 
+                val success = editor.commit() // 使用commit确保立即保存
+                Log.e(TAG, "SharedPreferences保存结果: $success")
+
+                Log.e(TAG, "发送广播...")
                 sendModeChangeBroadcast("com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED", true)
                 sendModeChangeBroadcast("com.example.bluetoothkeymapper.TV_MODE_CHANGED", false)
                 sendModeChangeBroadcast("com.example.bluetoothkeymapper.BAIDU_MODE_CHANGED", false)
                 sendModeChangeBroadcast("com.example.bluetoothkeymapper.TIKTOK_MODE_CHANGED", false)
 
-                Log.d(TAG, "已自动切换到油管模式")
+                Log.e(TAG, "✅ 已成功切换到YouTube模式")
             }
             "tv" -> {
                 isDoubleClickMappingEnabled = false
@@ -310,26 +362,31 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 Log.d(TAG, "已自动切换到百度网盘模式")
             }
             "tiktok" -> {
+                Log.e(TAG, "切换到TikTok模式...")
                 isDoubleClickMappingEnabled = false
                 isTvModeEnabled = false
                 isBaiduModeEnabled = false
                 isTiktokModeEnabled = true
 
-                sharedPreferences.edit()
+                val editor = sharedPreferences.edit()
                     .putBoolean(PREF_YOUTUBE_MODE_ENABLED, false)
                     .putBoolean(PREF_TV_MODE_ENABLED, false)
                     .putBoolean(PREF_BAIDU_MODE_ENABLED, false)
                     .putBoolean(PREF_TIKTOK_MODE_ENABLED, true)
-                    .apply()
 
+                val success = editor.commit() // 使用commit确保立即保存
+                Log.e(TAG, "SharedPreferences保存结果: $success")
+
+                Log.e(TAG, "发送广播...")
                 sendModeChangeBroadcast("com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED", false)
                 sendModeChangeBroadcast("com.example.bluetoothkeymapper.TV_MODE_CHANGED", false)
                 sendModeChangeBroadcast("com.example.bluetoothkeymapper.BAIDU_MODE_CHANGED", false)
                 sendModeChangeBroadcast("com.example.bluetoothkeymapper.TIKTOK_MODE_CHANGED", true)
 
-                Log.d(TAG, "已自动切换到TikTok模式")
+                Log.e(TAG, "✅ 已成功切换到TikTok模式")
             }
         }
+        Log.e(TAG, "=== 模式切换完成 ===")
     }
 
     private fun getSwipePixels(): Int {
@@ -1063,6 +1120,11 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         sharedPreferences.edit().putBoolean("auto_mode_enabled", enabled).apply()
         Log.d(TAG, "自动模式切换已${if (enabled) "开启" else "关闭"}")
+    }
+
+    fun clearLastTargetAppMode() {
+        lastTargetAppMode = ""
+        Log.e(TAG, "已清除上次目标应用模式记录")
     }
 
     private fun notifyTiktokModeChanged(enabled: Boolean) {

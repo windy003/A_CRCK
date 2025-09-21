@@ -58,15 +58,27 @@ class MainActivity : AppCompatActivity() {
                     val enabled = intent.getBooleanExtra("enabled", true)
                     Log.d(TAG, "收到YouTube模式状态变化广播: $enabled")
 
-                    // 更新开关状态，但不触发监听器
-                    binding.switchYoutubeMode.setOnCheckedChangeListener(null)
-                    binding.switchYoutubeMode.isChecked = enabled
+                    // 临时移除所有监听器
+                    removeAllModeListeners()
 
-                    // 重新设置监听器
-                    setYoutubeModeSwitchListener()
+                    // 如果YouTube模式开启，关闭其他所有模式
+                    if (enabled) {
+                        binding.switchYoutubeMode.isChecked = true
+                        binding.switchTvMode.isChecked = false
+                        binding.switchBaiduMode.isChecked = false
+                        binding.switchTiktokMode.isChecked = false
 
-                    // 更新UI显示
-                    updateYoutubeModeStatus(enabled)
+                        updateYoutubeModeStatus(true)
+                        updateTvModeStatus(false)
+                        updateBaiduModeStatus(false)
+                        updateTiktokModeStatus(false)
+                    } else {
+                        binding.switchYoutubeMode.isChecked = false
+                        updateYoutubeModeStatus(false)
+                    }
+
+                    // 重新设置所有监听器
+                    setAllModeListeners()
 
                     Log.d(TAG, "已同步YouTube模式状态到MainActivity开关: $enabled")
                 }
@@ -74,15 +86,27 @@ class MainActivity : AppCompatActivity() {
                     val enabled = intent.getBooleanExtra("enabled", false)
                     Log.d(TAG, "收到电视模式状态变化广播: $enabled")
 
-                    // 更新开关状态，但不触发监听器
-                    binding.switchTvMode.setOnCheckedChangeListener(null)
-                    binding.switchTvMode.isChecked = enabled
+                    // 临时移除所有监听器
+                    removeAllModeListeners()
 
-                    // 重新设置监听器
-                    setTvModeSwitchListener()
+                    // 如果电视模式开启，关闭其他所有模式
+                    if (enabled) {
+                        binding.switchYoutubeMode.isChecked = false
+                        binding.switchTvMode.isChecked = true
+                        binding.switchBaiduMode.isChecked = false
+                        binding.switchTiktokMode.isChecked = false
 
-                    // 更新UI显示
-                    updateTvModeStatus(enabled)
+                        updateYoutubeModeStatus(false)
+                        updateTvModeStatus(true)
+                        updateBaiduModeStatus(false)
+                        updateTiktokModeStatus(false)
+                    } else {
+                        binding.switchTvMode.isChecked = false
+                        updateTvModeStatus(false)
+                    }
+
+                    // 重新设置所有监听器
+                    setAllModeListeners()
 
                     Log.d(TAG, "已同步电视模式状态到MainActivity开关: $enabled")
                 }
@@ -101,33 +125,59 @@ class MainActivity : AppCompatActivity() {
                     val enabled = intent.getBooleanExtra("enabled", false)
                     Log.d(TAG, "收到百度网盘模式状态变化广播: $enabled")
 
-                    // 更新开关状态，但不触发监听器
-                    binding.switchBaiduMode.setOnCheckedChangeListener(null)
-                    binding.switchBaiduMode.isChecked = enabled
+                    // 临时移除所有监听器
+                    removeAllModeListeners()
 
-                    // 重新设置监听器
-                    setBaiduModeSwitchListener()
+                    // 如果百度网盘模式开启，关闭其他所有模式
+                    if (enabled) {
+                        binding.switchYoutubeMode.isChecked = false
+                        binding.switchTvMode.isChecked = false
+                        binding.switchBaiduMode.isChecked = true
+                        binding.switchTiktokMode.isChecked = false
 
-                    // 更新UI显示
-                    updateBaiduModeStatus(enabled)
+                        updateYoutubeModeStatus(false)
+                        updateTvModeStatus(false)
+                        updateBaiduModeStatus(true)
+                        updateTiktokModeStatus(false)
+                    } else {
+                        binding.switchBaiduMode.isChecked = false
+                        updateBaiduModeStatus(false)
+                    }
+
+                    // 重新设置所有监听器
+                    setAllModeListeners()
 
                     Log.d(TAG, "已同步百度网盘模式状态到MainActivity开关: $enabled")
                 }
                 TIKTOK_MODE_CHANGED_ACTION -> {
                     val enabled = intent.getBooleanExtra("enabled", false)
-                    Log.d(TAG, "收到TikTok模式状态变化广播: $enabled")
+                    Log.e(TAG, "📨 收到TikTok模式状态变化广播: $enabled")
 
-                    // 更新开关状态，但不触发监听器
-                    binding.switchTiktokMode.setOnCheckedChangeListener(null)
-                    binding.switchTiktokMode.isChecked = enabled
+                    // 临时移除所有监听器
+                    removeAllModeListeners()
 
-                    // 重新设置监听器
-                    setTiktokModeSwitchListener()
+                    // 如果TikTok模式开启，关闭其他所有模式
+                    if (enabled) {
+                        Log.e(TAG, "🔄 更新UI - 开启TikTok模式，关闭其他模式")
+                        binding.switchYoutubeMode.isChecked = false
+                        binding.switchTvMode.isChecked = false
+                        binding.switchBaiduMode.isChecked = false
+                        binding.switchTiktokMode.isChecked = true
 
-                    // 更新UI显示
-                    updateTiktokModeStatus(enabled)
+                        updateYoutubeModeStatus(false)
+                        updateTvModeStatus(false)
+                        updateBaiduModeStatus(false)
+                        updateTiktokModeStatus(true)
+                    } else {
+                        Log.e(TAG, "🔄 更新UI - 关闭TikTok模式")
+                        binding.switchTiktokMode.isChecked = false
+                        updateTiktokModeStatus(false)
+                    }
 
-                    Log.d(TAG, "已同步TikTok模式状态到MainActivity开关: $enabled")
+                    // 重新设置所有监听器
+                    setAllModeListeners()
+
+                    Log.e(TAG, "✅ TikTok模式状态同步完成: $enabled")
                 }
             }
         }
@@ -255,11 +305,7 @@ class MainActivity : AppCompatActivity() {
         loadSwipePixels()
 
         // 设置开关监听器
-        setAutoModeSwitchListener()
-        setYoutubeModeSwitchListener()
-        setTvModeSwitchListener()
-        setBaiduModeSwitchListener()
-        setTiktokModeSwitchListener()
+        setAllModeListeners()
         
         // 注册广播接收器监听磁贴状态变化
         registerTileReceiver()
@@ -319,6 +365,8 @@ class MainActivity : AppCompatActivity() {
 
             // 更新无障碍服务状态
             KeyMapperAccessibilityService.instance?.setDoubleClickMappingEnabled(isChecked)
+            // 清除自动模式记录，因为用户手动切换了
+            KeyMapperAccessibilityService.instance?.clearLastTargetAppMode()
 
             // 更新UI显示
             updateYoutubeModeStatus(isChecked)
@@ -353,6 +401,8 @@ class MainActivity : AppCompatActivity() {
 
             // 更新无障碍服务状态
             KeyMapperAccessibilityService.instance?.setTvModeEnabled(isChecked)
+            // 清除自动模式记录，因为用户手动切换了
+            KeyMapperAccessibilityService.instance?.clearLastTargetAppMode()
 
             // 更新UI显示
             updateTvModeStatus(isChecked)
@@ -678,6 +728,8 @@ class MainActivity : AppCompatActivity() {
 
             // 更新无障碍服务状态
             KeyMapperAccessibilityService.instance?.setBaiduModeEnabled(isChecked)
+            // 清除自动模式记录，因为用户手动切换了
+            KeyMapperAccessibilityService.instance?.clearLastTargetAppMode()
 
             // 更新UI显示
             updateBaiduModeStatus(isChecked)
@@ -727,6 +779,8 @@ class MainActivity : AppCompatActivity() {
 
             // 更新无障碍服务状态
             KeyMapperAccessibilityService.instance?.setTiktokModeEnabled(isChecked)
+            // 清除自动模式记录，因为用户手动切换了
+            KeyMapperAccessibilityService.instance?.clearLastTargetAppMode()
 
             // 更新UI显示
             updateTiktokModeStatus(isChecked)
@@ -885,64 +939,101 @@ class MainActivity : AppCompatActivity() {
         binding.etSwipePixels.setText(savedPixels.toString())
         Log.d(TAG, "加载滑动像素值: ${savedPixels}px")
     }
-    
+
+    private fun removeAllModeListeners() {
+        binding.switchAutoMode.setOnCheckedChangeListener(null)
+        binding.switchYoutubeMode.setOnCheckedChangeListener(null)
+        binding.switchTvMode.setOnCheckedChangeListener(null)
+        binding.switchBaiduMode.setOnCheckedChangeListener(null)
+        binding.switchTiktokMode.setOnCheckedChangeListener(null)
+    }
+
+    private fun setAllModeListeners() {
+        setAutoModeSwitchListener()
+        setYoutubeModeSwitchListener()
+        setTvModeSwitchListener()
+        setBaiduModeSwitchListener()
+        setTiktokModeSwitchListener()
+    }
+
     override fun onResume() {
         super.onResume()
-        
+
         // 检查服务运行状态
         checkServiceRunningState()
-        
+
         updateUI()
-        
-        // 同步SharedPreferences中的状态到开关，防止磁贴修改后不同步
-        val currentState = sharedPreferences.getBoolean(PREF_YOUTUBE_MODE_ENABLED, true)
-        if (binding.switchYoutubeMode.isChecked != currentState) {
-            Log.d(TAG, "onResume检测到YouTube模式状态不同步，更新开关状态: $currentState")
-            binding.switchYoutubeMode.setOnCheckedChangeListener(null)
-            binding.switchYoutubeMode.isChecked = currentState
-            setYoutubeModeSwitchListener()
-            updateYoutubeModeStatus(currentState)
-        }
-        
-        // 同步电视模式状态
-        val currentTvModeState = sharedPreferences.getBoolean(PREF_TV_MODE_ENABLED, false)
-        if (binding.switchTvMode.isChecked != currentTvModeState) {
-            Log.d(TAG, "onResume检测到电视模式状态不同步，更新开关状态: $currentTvModeState")
-            binding.switchTvMode.setOnCheckedChangeListener(null)
+
+        // 延迟一下再同步状态，确保无障碍服务已经处理完应用切换
+        android.os.Handler().postDelayed({
+            syncAllModeStates()
+        }, 200)
+    }
+
+    private fun syncAllModeStates() {
+        Log.e(TAG, "🔄 开始同步所有模式状态")
+
+        // 同步所有模式状态
+        removeAllModeListeners()
+
+        // 从无障碍服务获取实时状态
+        val accessibilityService = KeyMapperAccessibilityService.instance
+        if (accessibilityService != null) {
+            Log.e(TAG, "📱 从无障碍服务获取实时状态")
+
+            // 强制从SharedPreferences读取最新状态
+            val currentYoutubeState = sharedPreferences.getBoolean(PREF_YOUTUBE_MODE_ENABLED, true)
+            val currentTvModeState = sharedPreferences.getBoolean(PREF_TV_MODE_ENABLED, false)
+            val currentBaiduModeState = sharedPreferences.getBoolean(PREF_BAIDU_MODE_ENABLED, false)
+            val currentTiktokModeState = sharedPreferences.getBoolean(PREF_TIKTOK_MODE_ENABLED, false)
+            val currentAutoModeState = sharedPreferences.getBoolean(PREF_AUTO_MODE_ENABLED, true)
+
+            Log.e(TAG, "📊 当前状态 - YouTube:$currentYoutubeState, TV:$currentTvModeState, Baidu:$currentBaiduModeState, TikTok:$currentTiktokModeState, Auto:$currentAutoModeState")
+
+            // 更新所有开关状态
+            binding.switchYoutubeMode.isChecked = currentYoutubeState
             binding.switchTvMode.isChecked = currentTvModeState
-            setTvModeSwitchListener()
-            updateTvModeStatus(currentTvModeState)
-        }
-
-        // 同步百度网盘模式状态
-        val currentBaiduModeState = sharedPreferences.getBoolean(PREF_BAIDU_MODE_ENABLED, false)
-        if (binding.switchBaiduMode.isChecked != currentBaiduModeState) {
-            Log.d(TAG, "onResume检测到百度网盘模式状态不同步，更新开关状态: $currentBaiduModeState")
-            binding.switchBaiduMode.setOnCheckedChangeListener(null)
             binding.switchBaiduMode.isChecked = currentBaiduModeState
-            setBaiduModeSwitchListener()
-            updateBaiduModeStatus(currentBaiduModeState)
-        }
-
-        // 同步TikTok模式状态
-        val currentTiktokModeState = sharedPreferences.getBoolean(PREF_TIKTOK_MODE_ENABLED, false)
-        if (binding.switchTiktokMode.isChecked != currentTiktokModeState) {
-            Log.d(TAG, "onResume检测到TikTok模式状态不同步，更新开关状态: $currentTiktokModeState")
-            binding.switchTiktokMode.setOnCheckedChangeListener(null)
             binding.switchTiktokMode.isChecked = currentTiktokModeState
-            setTiktokModeSwitchListener()
-            updateTiktokModeStatus(currentTiktokModeState)
-        }
-
-        // 同步自动模式状态
-        val currentAutoModeState = sharedPreferences.getBoolean(PREF_AUTO_MODE_ENABLED, true)
-        if (binding.switchAutoMode.isChecked != currentAutoModeState) {
-            Log.d(TAG, "onResume检测到自动模式状态不同步，更新开关状态: $currentAutoModeState")
-            binding.switchAutoMode.setOnCheckedChangeListener(null)
             binding.switchAutoMode.isChecked = currentAutoModeState
-            setAutoModeSwitchListener()
+
+            // 更新所有UI状态
+            updateYoutubeModeStatus(currentYoutubeState)
+            updateTvModeStatus(currentTvModeState)
+            updateBaiduModeStatus(currentBaiduModeState)
+            updateTiktokModeStatus(currentTiktokModeState)
+            updateAutoModeStatus(currentAutoModeState)
+
+            Log.e(TAG, "🎯 界面状态更新完成")
+        } else {
+            Log.w(TAG, "无障碍服务实例为空，使用SharedPreferences状态")
+
+            // 直接从SharedPreferences读取状态
+            val currentYoutubeState = sharedPreferences.getBoolean(PREF_YOUTUBE_MODE_ENABLED, true)
+            val currentTvModeState = sharedPreferences.getBoolean(PREF_TV_MODE_ENABLED, false)
+            val currentBaiduModeState = sharedPreferences.getBoolean(PREF_BAIDU_MODE_ENABLED, false)
+            val currentTiktokModeState = sharedPreferences.getBoolean(PREF_TIKTOK_MODE_ENABLED, false)
+            val currentAutoModeState = sharedPreferences.getBoolean(PREF_AUTO_MODE_ENABLED, true)
+
+            // 更新所有开关状态
+            binding.switchYoutubeMode.isChecked = currentYoutubeState
+            binding.switchTvMode.isChecked = currentTvModeState
+            binding.switchBaiduMode.isChecked = currentBaiduModeState
+            binding.switchTiktokMode.isChecked = currentTiktokModeState
+            binding.switchAutoMode.isChecked = currentAutoModeState
+
+            // 更新所有UI状态
+            updateYoutubeModeStatus(currentYoutubeState)
+            updateTvModeStatus(currentTvModeState)
+            updateBaiduModeStatus(currentBaiduModeState)
+            updateTiktokModeStatus(currentTiktokModeState)
             updateAutoModeStatus(currentAutoModeState)
         }
+
+        // 重新设置所有监听器
+        setAllModeListeners()
+
+        Log.e(TAG, "✅ 模式状态同步完成")
     }
     
     
