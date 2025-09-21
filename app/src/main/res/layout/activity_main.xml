@@ -90,6 +90,38 @@
         android:background="@android:color/holo_green_light"
         android:layout_marginBottom="24dp" />
 
+    <!-- 自动模式开关区域 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="自动模式切换"
+            android:textSize="16sp" />
+
+        <Switch
+            android:id="@+id/switchAutoMode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvAutoModeStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="自动模式已开启 - 根据当前应用自动切换模式"
+        android:textSize="14sp"
+        android:textColor="@android:color/holo_green_dark"
+        android:layout_marginBottom="16dp" />
+
     <!-- YouTube模式开关区域 -->
     <LinearLayout
         android:layout_width="match_parent"

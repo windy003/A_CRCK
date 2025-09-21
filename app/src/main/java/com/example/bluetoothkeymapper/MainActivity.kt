@@ -42,6 +42,7 @@ class MainActivity : AppCompatActivity() {
         private const val PREF_BAIDU_MODE_ENABLED = "baidu_mode_enabled"
         private const val PREF_TIKTOK_MODE_ENABLED = "tiktok_mode_enabled"
         private const val PREF_SERVICE_ENABLED = "service_enabled"
+        private const val PREF_AUTO_MODE_ENABLED = "auto_mode_enabled"
         private const val YOUTUBE_MODE_CHANGED_ACTION = "com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED"
         private const val TV_MODE_CHANGED_ACTION = "com.example.bluetoothkeymapper.TV_MODE_CHANGED"
         private const val BAIDU_MODE_CHANGED_ACTION = "com.example.bluetoothkeymapper.BAIDU_MODE_CHANGED"
@@ -245,10 +246,16 @@ class MainActivity : AppCompatActivity() {
         binding.switchTiktokMode.isChecked = isTiktokModeEnabled
         updateTiktokModeStatus(isTiktokModeEnabled)
 
+        // 设置自动模式开关
+        val isAutoModeEnabled = sharedPreferences.getBoolean(PREF_AUTO_MODE_ENABLED, true)
+        binding.switchAutoMode.isChecked = isAutoModeEnabled
+        updateAutoModeStatus(isAutoModeEnabled)
+
         // 初始化客制化像素值
         loadSwipePixels()
 
         // 设置开关监听器
+        setAutoModeSwitchListener()
         setYoutubeModeSwitchListener()
         setTvModeSwitchListener()
         setBaiduModeSwitchListener()
@@ -257,7 +264,45 @@ class MainActivity : AppCompatActivity() {
         // 注册广播接收器监听磁贴状态变化
         registerTileReceiver()
     }
-    
+
+    private fun setAutoModeSwitchListener() {
+        binding.switchAutoMode.setOnCheckedChangeListener { _, isChecked ->
+            Log.d(TAG, "自动模式开关状态改变: $isChecked")
+
+            // 保存状态
+            sharedPreferences.edit()
+                .putBoolean(PREF_AUTO_MODE_ENABLED, isChecked)
+                .apply()
+
+            // 更新无障碍服务状态
+            KeyMapperAccessibilityService.instance?.setAutoModeEnabled(isChecked)
+
+            // 更新UI显示
+            updateAutoModeStatus(isChecked)
+
+            Toast.makeText(
+                this,
+                if (isChecked) "自动模式已开启 - 将根据当前应用自动切换模式" else "自动模式已关闭 - 需要手动切换模式",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun updateAutoModeStatus(enabled: Boolean) {
+        binding.tvAutoModeStatus.text = if (enabled) {
+            "自动模式已开启 - 根据当前应用自动切换模式"
+        } else {
+            "自动模式已关闭 - 需要手动切换模式"
+        }
+
+        binding.tvAutoModeStatus.setTextColor(
+            ContextCompat.getColor(
+                this,
+                if (enabled) android.R.color.holo_green_dark else android.R.color.holo_red_dark
+            )
+        )
+    }
+
     private fun setYoutubeModeSwitchListener() {
         binding.switchYoutubeMode.setOnCheckedChangeListener { _, isChecked ->
             Log.d(TAG, "YouTube模式开关状态改变: $isChecked")
@@ -887,6 +932,16 @@ class MainActivity : AppCompatActivity() {
             binding.switchTiktokMode.isChecked = currentTiktokModeState
             setTiktokModeSwitchListener()
             updateTiktokModeStatus(currentTiktokModeState)
+        }
+
+        // 同步自动模式状态
+        val currentAutoModeState = sharedPreferences.getBoolean(PREF_AUTO_MODE_ENABLED, true)
+        if (binding.switchAutoMode.isChecked != currentAutoModeState) {
+            Log.d(TAG, "onResume检测到自动模式状态不同步，更新开关状态: $currentAutoModeState")
+            binding.switchAutoMode.setOnCheckedChangeListener(null)
+            binding.switchAutoMode.isChecked = currentAutoModeState
+            setAutoModeSwitchListener()
+            updateAutoModeStatus(currentAutoModeState)
         }
     }
     

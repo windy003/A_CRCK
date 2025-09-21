@@ -22,6 +22,8 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     private var lastMediaPlayPauseTime = 0L // 上次播放/暂停按键时间戳
     private var screenWidth = 0 // 屏幕宽度
     private var screenHeight = 0 // 屏幕高度
+    private var currentForegroundApp = "" // 当前前台应用包名
+    private var isAutoModeEnabled = true // 自动模式切换开关
     
     companion object {
         private const val TAG = "KeyMapperAccessibility"
@@ -31,6 +33,15 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         private const val PREF_TV_MODE_ENABLED = "tv_mode_enabled"
         private const val PREF_BAIDU_MODE_ENABLED = "baidu_mode_enabled"
         private const val PREF_TIKTOK_MODE_ENABLED = "tiktok_mode_enabled"
+
+        // 应用包名映射
+        private const val YOUTUBE_PACKAGE = "com.google.android.youtube"
+        private const val YOUTUBE_MUSIC_PACKAGE = "com.google.android.apps.youtube.music"
+        private const val TIKTOK_PACKAGE = "com.zhiliaoapp.musically"
+        private const val TIKTOK_LITE_PACKAGE = "com.zhiliaoapp.musically.go"
+        private const val DOUYIN_PACKAGE = "com.ss.android.ugc.aweme"
+        private const val DOUYIN_LITE_PACKAGE = "com.ss.android.ugc.aweme.lite"
+        private const val BAIDU_DISK_PACKAGE = "com.baidu.netdisk"
     }
     
     override fun onCreate() {
@@ -44,6 +55,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         isTvModeEnabled = sharedPreferences.getBoolean(PREF_TV_MODE_ENABLED, false)
         isBaiduModeEnabled = sharedPreferences.getBoolean(PREF_BAIDU_MODE_ENABLED, false)
         isTiktokModeEnabled = sharedPreferences.getBoolean(PREF_TIKTOK_MODE_ENABLED, false)
+        isAutoModeEnabled = sharedPreferences.getBoolean("auto_mode_enabled", true)
         
         Log.d(TAG, "无障碍服务已创建")
         Log.d(TAG, "双击映射初始状态: ${if (isDoubleClickMappingEnabled) "开启" else "关闭"}")
@@ -92,6 +104,21 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     }
     
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        if (event == null || !isAutoModeEnabled) return
+
+        // 监听窗口状态变化事件，检测前台应用切换
+        when (event.eventType) {
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
+                val packageName = event.packageName?.toString()
+                if (!packageName.isNullOrEmpty() && packageName != currentForegroundApp) {
+                    currentForegroundApp = packageName
+                    Log.d(TAG, "检测到前台应用切换: $packageName")
+
+                    // 根据应用包名自动切换模式
+                    checkAndSwitchModeByApp(packageName)
+                }
+            }
+        }
     }
     
     override fun onInterrupt() {
@@ -181,6 +208,128 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         intent.setPackage(packageName)
         sendBroadcast(intent)
         Log.d(TAG, "已发送模式状态变化广播: $action = $enabled")
+    }
+
+    private fun checkAndSwitchModeByApp(packageName: String) {
+        if (!isAutoModeEnabled) return
+
+        val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+        when (packageName) {
+            YOUTUBE_PACKAGE, YOUTUBE_MUSIC_PACKAGE -> {
+                // YouTube应用 - 切换到油管模式
+                if (!isDoubleClickMappingEnabled || isTvModeEnabled || isBaiduModeEnabled || isTiktokModeEnabled) {
+                    Log.d(TAG, "检测到YouTube应用，自动切换到油管模式")
+                    switchToMode("youtube")
+                }
+            }
+            TIKTOK_PACKAGE, TIKTOK_LITE_PACKAGE, DOUYIN_PACKAGE, DOUYIN_LITE_PACKAGE -> {
+                // TikTok/抖音应用 - 切换到TikTok模式
+                if (isDoubleClickMappingEnabled || isTvModeEnabled || isBaiduModeEnabled || !isTiktokModeEnabled) {
+                    Log.d(TAG, "检测到TikTok/抖音应用，自动切换到TikTok模式")
+                    switchToMode("tiktok")
+                }
+            }
+            BAIDU_DISK_PACKAGE -> {
+                // 百度网盘应用 - 切换到百度网盘模式
+                if (isDoubleClickMappingEnabled || isTvModeEnabled || !isBaiduModeEnabled || isTiktokModeEnabled) {
+                    Log.d(TAG, "检测到百度网盘应用，自动切换到百度网盘模式")
+                    switchToMode("baidu")
+                }
+            }
+            else -> {
+                // 其他应用 - 根据屏幕比例决定使用油管模式还是电视模式
+                Log.d(TAG, "检测到其他应用: $packageName，根据屏幕比例自动切换模式")
+                checkAndSwitchModeByAspectRatio()
+            }
+        }
+    }
+
+    private fun switchToMode(mode: String) {
+        val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+        when (mode) {
+            "youtube" -> {
+                isDoubleClickMappingEnabled = true
+                isTvModeEnabled = false
+                isBaiduModeEnabled = false
+                isTiktokModeEnabled = false
+
+                sharedPreferences.edit()
+                    .putBoolean(PREF_YOUTUBE_MODE_ENABLED, true)
+                    .putBoolean(PREF_TV_MODE_ENABLED, false)
+                    .putBoolean(PREF_BAIDU_MODE_ENABLED, false)
+                    .putBoolean(PREF_TIKTOK_MODE_ENABLED, false)
+                    .apply()
+
+                sendModeChangeBroadcast("com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED", true)
+                sendModeChangeBroadcast("com.example.bluetoothkeymapper.TV_MODE_CHANGED", false)
+                sendModeChangeBroadcast("com.example.bluetoothkeymapper.BAIDU_MODE_CHANGED", false)
+                sendModeChangeBroadcast("com.example.bluetoothkeymapper.TIKTOK_MODE_CHANGED", false)
+
+                Log.d(TAG, "已自动切换到油管模式")
+            }
+            "tv" -> {
+                isDoubleClickMappingEnabled = false
+                isTvModeEnabled = true
+                isBaiduModeEnabled = false
+                isTiktokModeEnabled = false
+
+                sharedPreferences.edit()
+                    .putBoolean(PREF_YOUTUBE_MODE_ENABLED, false)
+                    .putBoolean(PREF_TV_MODE_ENABLED, true)
+                    .putBoolean(PREF_BAIDU_MODE_ENABLED, false)
+                    .putBoolean(PREF_TIKTOK_MODE_ENABLED, false)
+                    .apply()
+
+                sendModeChangeBroadcast("com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED", false)
+                sendModeChangeBroadcast("com.example.bluetoothkeymapper.TV_MODE_CHANGED", true)
+                sendModeChangeBroadcast("com.example.bluetoothkeymapper.BAIDU_MODE_CHANGED", false)
+                sendModeChangeBroadcast("com.example.bluetoothkeymapper.TIKTOK_MODE_CHANGED", false)
+
+                Log.d(TAG, "已自动切换到电视模式")
+            }
+            "baidu" -> {
+                isDoubleClickMappingEnabled = false
+                isTvModeEnabled = false
+                isBaiduModeEnabled = true
+                isTiktokModeEnabled = false
+
+                sharedPreferences.edit()
+                    .putBoolean(PREF_YOUTUBE_MODE_ENABLED, false)
+                    .putBoolean(PREF_TV_MODE_ENABLED, false)
+                    .putBoolean(PREF_BAIDU_MODE_ENABLED, true)
+                    .putBoolean(PREF_TIKTOK_MODE_ENABLED, false)
+                    .apply()
+
+                sendModeChangeBroadcast("com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED", false)
+                sendModeChangeBroadcast("com.example.bluetoothkeymapper.TV_MODE_CHANGED", false)
+                sendModeChangeBroadcast("com.example.bluetoothkeymapper.BAIDU_MODE_CHANGED", true)
+                sendModeChangeBroadcast("com.example.bluetoothkeymapper.TIKTOK_MODE_CHANGED", false)
+
+                Log.d(TAG, "已自动切换到百度网盘模式")
+            }
+            "tiktok" -> {
+                isDoubleClickMappingEnabled = false
+                isTvModeEnabled = false
+                isBaiduModeEnabled = false
+                isTiktokModeEnabled = true
+
+                sharedPreferences.edit()
+                    .putBoolean(PREF_YOUTUBE_MODE_ENABLED, false)
+                    .putBoolean(PREF_TV_MODE_ENABLED, false)
+                    .putBoolean(PREF_BAIDU_MODE_ENABLED, false)
+                    .putBoolean(PREF_TIKTOK_MODE_ENABLED, true)
+                    .apply()
+
+                sendModeChangeBroadcast("com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED", false)
+                sendModeChangeBroadcast("com.example.bluetoothkeymapper.TV_MODE_CHANGED", false)
+                sendModeChangeBroadcast("com.example.bluetoothkeymapper.BAIDU_MODE_CHANGED", false)
+                sendModeChangeBroadcast("com.example.bluetoothkeymapper.TIKTOK_MODE_CHANGED", true)
+
+                Log.d(TAG, "已自动切换到TikTok模式")
+            }
+        }
     }
 
     private fun getSwipePixels(): Int {
@@ -907,6 +1056,13 @@ class KeyMapperAccessibilityService : AccessibilityService() {
 
         // 通知所有监听器状态变化
         notifyTiktokModeChanged(enabled)
+    }
+
+    fun setAutoModeEnabled(enabled: Boolean) {
+        isAutoModeEnabled = enabled
+        val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        sharedPreferences.edit().putBoolean("auto_mode_enabled", enabled).apply()
+        Log.d(TAG, "自动模式切换已${if (enabled) "开启" else "关闭"}")
     }
 
     private fun notifyTiktokModeChanged(enabled: Boolean) {
