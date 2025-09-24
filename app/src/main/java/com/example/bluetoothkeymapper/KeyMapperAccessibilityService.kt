@@ -29,6 +29,8 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     private var f5KeyPressTime = 0L // F5键按下时间戳
     private var f5KeyHandler: android.os.Handler? = null // F5键长按处理器
     private var isF5LongPressTriggered = false // F5长按是否已触发
+    private var lastVolumeBeforeMute = -1 // 静音前的音量
+    private var isMuted = false // 当前是否静音
     
     companion object {
         private const val TAG = "KeyMapperAccessibility"
@@ -78,7 +80,14 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         isBaiduModeEnabled = sharedPreferences.getBoolean(PREF_BAIDU_MODE_ENABLED, false)
         isTiktokModeEnabled = sharedPreferences.getBoolean(PREF_TIKTOK_MODE_ENABLED, false)
         isAutoModeEnabled = sharedPreferences.getBoolean("auto_mode_enabled", true)
-        
+
+        // 初始化音量状态
+        audioManager?.let { am ->
+            val currentVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+            isMuted = currentVolume == 0
+            Log.d(TAG, "初始化音量状态: 当前音量=$currentVolume, 静音状态=$isMuted")
+        }
+
         Log.d(TAG, "无障碍服务已创建")
         Log.d(TAG, "双击映射初始状态: ${if (isDoubleClickMappingEnabled) "开启" else "关闭"}")
         Log.d(TAG, "电视模式初始状态: ${if (isTvModeEnabled) "开启" else "关闭"}")
@@ -105,7 +114,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             Log.i(TAG, "dpad left: 双击屏幕坐标(133,439)")
             Log.i(TAG, "dpad right: 双击屏幕坐标 (竖屏810,265 / 横屏1940,384)")
             Log.i(TAG, "dpad down: 点击CC按钮 (竖屏876,154 / 横屏2273,88)")
-            Log.i(TAG, "dpad up: 单击屏幕坐标(520,107) - 仅横屏模式")
+            Log.i(TAG, "dpad up: 静音/恢复音量切换 - 显示音量控制UI")
             Log.i(TAG, "back key: 单击屏幕坐标(133,439)")
             Log.i(TAG, "move home key (122): 上一曲按键")
             Log.i(TAG, "menu key: 下一曲按键")
@@ -571,16 +580,15 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
 
-            // 处理dpad up键 - 功能已转移到F5长按，现在禁用
+            // 处理dpad up键 - 静音和恢复音量切换
             KeyEvent.KEYCODE_DPAD_UP -> {  // 19 方向键上
                 Log.e(TAG, "!!! 检测到dpad up按键: ${event.keyCode} !!!")
-                Log.e(TAG, "上方向键功能已转移到F5长按，当前操作被忽略")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    // 上方向键功能已转移到F5长按，这里只记录日志
-                    Log.w(TAG, "上方向键功能已转移到F5键长按1秒，请使用F5长按代替")
+                    Log.e(TAG, "上方向键 - 执行静音/恢复音量切换")
+                    toggleMute()
                 }
-                return true // 拦截原始事件但不执行任何操作
+                return true // 拦截原始事件
             }
             
             // 处理返回按键 - 根据模式进行不同映射
@@ -1345,6 +1353,78 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             }
         } else {
             Log.w(TAG, "F5长按 - 非油管模式，不执行上方向键功能")
+        }
+    }
+
+    // 静音和恢复音量切换功能
+    private fun toggleMute() {
+        try {
+            audioManager?.let { am ->
+                if (isMuted) {
+                    // 当前是静音状态，恢复音量
+                    if (lastVolumeBeforeMute > 0) {
+                        am.setStreamVolume(
+                            AudioManager.STREAM_MUSIC,
+                            lastVolumeBeforeMute,
+                            AudioManager.FLAG_SHOW_UI or AudioManager.FLAG_PLAY_SOUND
+                        )
+                        Log.e(TAG, "恢复音量到: $lastVolumeBeforeMute")
+                    } else {
+                        // 如果没有保存的音量，设置为中等音量
+                        val maxVolume = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                        val defaultVolume = maxVolume / 2
+                        am.setStreamVolume(
+                            AudioManager.STREAM_MUSIC,
+                            defaultVolume,
+                            AudioManager.FLAG_SHOW_UI or AudioManager.FLAG_PLAY_SOUND
+                        )
+                        Log.e(TAG, "恢复到默认音量: $defaultVolume")
+                    }
+                    isMuted = false
+                    lastVolumeBeforeMute = -1
+                } else {
+                    // 当前不是静音状态，执行静音
+                    val currentVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+                    if (currentVolume > 0) {
+                        lastVolumeBeforeMute = currentVolume
+                        am.setStreamVolume(
+                            AudioManager.STREAM_MUSIC,
+                            0,
+                            AudioManager.FLAG_SHOW_UI
+                        )
+                        Log.e(TAG, "静音，保存音量: $currentVolume")
+                        isMuted = true
+                    } else {
+                        Log.e(TAG, "当前已经是静音状态")
+                    }
+                }
+
+                // 显示音量控制UI
+                showVolumeUI()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "静音/恢复音量切换失败: ${e.message}")
+        }
+    }
+
+    // 显示音量控制UI
+    private fun showVolumeUI() {
+        try {
+            audioManager?.let { am ->
+                val currentVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+                val maxVolume = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+
+                Log.e(TAG, "🔊 音量状态: ${if (isMuted) "静音" else "正常"} - $currentVolume/$maxVolume")
+
+                // 通过设置相同音量来显示UI
+                am.setStreamVolume(
+                    AudioManager.STREAM_MUSIC,
+                    currentVolume,
+                    AudioManager.FLAG_SHOW_UI
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "显示音量 UI 失败: ${e.message}")
         }
     }
 
