@@ -26,6 +26,9 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     private var isAutoModeEnabled = true // 自动模式切换开关
     private var lastTargetAppMode = "" // 上次使用的目标应用模式
     private var lastTargetAppTime = 0L // 上次使用目标应用的时间
+    private var f5KeyPressTime = 0L // F5键按下时间戳
+    private var f5KeyHandler: android.os.Handler? = null // F5键长按处理器
+    private var isF5LongPressTriggered = false // F5长按是否已触发
     
     companion object {
         private const val TAG = "KeyMapperAccessibility"
@@ -66,6 +69,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         super.onCreate()
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         instance = this
+        f5KeyHandler = android.os.Handler()
         
         // 从SharedPreferences读取初始状态
         val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -567,30 +571,16 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
 
-            // 处理dpad up键 - 根据模式进行不同映射
+            // 处理dpad up键 - 功能已转移到F5长按，现在禁用
             KeyEvent.KEYCODE_DPAD_UP -> {  // 19 方向键上
                 Log.e(TAG, "!!! 检测到dpad up按键: ${event.keyCode} !!!")
+                Log.e(TAG, "上方向键功能已转移到F5长按，当前操作被忽略")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (isTiktokModeEnabled) {
-                        // TikTok模式：禁用上方向键功能
-                        Log.e(TAG, "TikTok模式 - 上方向键功能已禁用")
-                        return true // 拦截事件但不执行任何操作
-                    } else {
-                        // 检查屏幕方向，只在横屏模式下执行
-                        val orientation = resources.configuration.orientation
-                        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
-
-                        if (isLandscape) {
-                            Log.e(TAG, "横屏模式 - 执行单击屏幕坐标(520,107)操作")
-                            performSingleClick(520f, 107f)
-                            Log.e(TAG, "单击操作完成")
-                        } else {
-                            Log.w(TAG, "竖屏模式 - 上方向键功能已禁用，只在横屏模式下生效")
-                        }
-                    }
+                    // 上方向键功能已转移到F5长按，这里只记录日志
+                    Log.w(TAG, "上方向键功能已转移到F5键长按1秒，请使用F5长按代替")
                 }
-                return true // 拦截原始事件
+                return true // 拦截原始事件但不执行任何操作
             }
             
             // 处理返回按键 - 根据模式进行不同映射
@@ -743,33 +733,42 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
 
-            // 处理F5键(语音键) - 根据模式和屏幕方向进行不同映射
+            // 处理F5键(语音键) - 实现长按检测，将上方向键功能转移到长按
             135 -> {  // 135 F5键（蓝牙遥控器的语音键）
                 Log.e(TAG, "!!! 检测到F5语音键: ${event.keyCode} !!!")
 
-                if (event.action == KeyEvent.ACTION_DOWN) {
-                    Log.e(TAG, "检测屏幕方向...")
-                    val orientation = resources.configuration.orientation
-                    val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+                when (event.action) {
+                    KeyEvent.ACTION_DOWN -> {
+                        // 记录按下时间
+                        f5KeyPressTime = System.currentTimeMillis()
+                        isF5LongPressTriggered = false
 
-                    if (isTvModeEnabled) {
-                        // 电视模式：根据屏幕方向选择不同坐标
-                        if (isPortrait) {
-                            Log.e(TAG, "电视模式竖屏状态，忽略F5键操作")
-                        } else {
-                            Log.e(TAG, "电视模式横屏状态，执行点击坐标(1885,60)操作")
-                            performSingleClick(1885f, 60f)
-                            Log.e(TAG, "电视模式F5键横屏点击操作完成")
+                        // 设置1秒后触发长按事件
+                        f5KeyHandler?.postDelayed({
+                            if (f5KeyPressTime > 0 && !isF5LongPressTriggered) {
+                                isF5LongPressTriggered = true
+                                handleF5LongPress()
+                            }
+                        }, 1000) // 1秒长按
+
+                        Log.e(TAG, "F5键按下，开始计时...")
+                    }
+
+                    KeyEvent.ACTION_UP -> {
+                        val pressDuration = System.currentTimeMillis() - f5KeyPressTime
+                        Log.e(TAG, "F5键松开，按下时长: ${pressDuration}ms")
+
+                        // 清除长按计时器
+                        f5KeyHandler?.removeCallbacksAndMessages(null)
+
+                        if (!isF5LongPressTriggered && pressDuration < 1000) {
+                            // 短按：执行原有的点击功能
+                            handleF5ShortPress()
                         }
-                    } else {
-                        // 普通模式：原有逻辑
-                        if (isPortrait) {
-                            Log.e(TAG, "当前为竖屏状态，忽略F5键操作")
-                        } else {
-                            Log.e(TAG, "当前为横屏状态，执行点击坐标(2402,74)操作")
-                            performSingleClick(2402f, 74f)
-                            Log.e(TAG, "F5键横屏点击操作完成")
-                        }
+
+                        // 重置状态
+                        f5KeyPressTime = 0L
+                        isF5LongPressTriggered = false
                     }
                 }
                 return true // 拦截原始事件
@@ -1295,9 +1294,65 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         }, null)
     }
 
+    // 处理F5键短按（原有功能）
+    private fun handleF5ShortPress() {
+        Log.e(TAG, "F5键短按 - 执行原有点击功能")
+        val orientation = resources.configuration.orientation
+        val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+
+        if (isTvModeEnabled) {
+            // 电视模式：根据屏幕方向选择不同坐标
+            if (isPortrait) {
+                Log.e(TAG, "电视模式竖屏状态，忽略F5键短按操作")
+            } else {
+                Log.e(TAG, "电视模式横屏状态，执行点击坐标(1885,60)操作")
+                performSingleClick(1885f, 60f)
+                Log.e(TAG, "电视模式F5键横屏点击操作完成")
+            }
+        } else {
+            // 普通模式：原有逻辑
+            if (isPortrait) {
+                Log.e(TAG, "当前为竖屏状态，忽略F5键短按操作")
+            } else {
+                Log.e(TAG, "当前为横屏状态，执行点击坐标(2402,74)操作")
+                performSingleClick(2402f, 74f)
+                Log.e(TAG, "F5键横屏点击操作完成")
+            }
+        }
+    }
+
+    // 处理F5键长挈1秒（原上方向键功能）
+    private fun handleF5LongPress() {
+        Log.e(TAG, "F5键长挈1秒触发 - 执行原上方向键功能")
+
+        // 只在油管模式下才执行原上方向键功能
+        if (isDoubleClickMappingEnabled || isTvModeEnabled) {
+            if (isTiktokModeEnabled) {
+                // TikTok模式：禁用上方向键功能
+                Log.e(TAG, "TikTok模式 - 上方向键功能已禁用")
+            } else {
+                // 检查屏幕方向，只在横屏模式下执行
+                val orientation = resources.configuration.orientation
+                val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+                if (isLandscape) {
+                    Log.e(TAG, "F5长按 - 横屏模式，执行单击屏幕坐标(520,107)操作")
+                    performSingleClick(520f, 107f)
+                    Log.e(TAG, "F5长按单击操作完成")
+                } else {
+                    Log.w(TAG, "F5长按 - 竖屏模式，上方向键功能已禁用，只在横屏模式下生效")
+                }
+            }
+        } else {
+            Log.w(TAG, "F5长按 - 非油管模式，不执行上方向键功能")
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         instance = null
+        f5KeyHandler?.removeCallbacksAndMessages(null)
+        f5KeyHandler = null
         Log.d(TAG, "无障碍服务已销毁")
     }
 }
