@@ -307,8 +307,6 @@ class MainActivity : AppCompatActivity() {
         // 设置开关监听器
         setAllModeListeners()
         
-        // 注册广播接收器监听磁贴状态变化
-        registerTileReceiver()
     }
 
     private fun setAutoModeSwitchListener() {
@@ -421,40 +419,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    private fun registerTileReceiver() {
-        if (!isReceiverRegistered) {
-            try {
-                val filter = IntentFilter().apply {
-                    addAction(YOUTUBE_MODE_CHANGED_ACTION)
-                    addAction(TV_MODE_CHANGED_ACTION)
-                    addAction(BAIDU_MODE_CHANGED_ACTION)
-                    addAction(TIKTOK_MODE_CHANGED_ACTION)
-                    addAction(MAIN_TOGGLE_CHANGED_ACTION)
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    registerReceiver(tileStateReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-                } else {
-                    registerReceiver(tileStateReceiver, filter)
-                }
-                isReceiverRegistered = true
-                Log.d(TAG, "状态广播接收器注册成功")
-            } catch (e: Exception) {
-                Log.e(TAG, "注册状态广播接收器失败: ${e.message}")
-            }
-        }
-    }
     
-    private fun unregisterTileReceiver() {
-        if (isReceiverRegistered) {
-            try {
-                unregisterReceiver(tileStateReceiver)
-                isReceiverRegistered = false
-                Log.d(TAG, "磁贴状态广播接收器取消注册成功")
-            } catch (e: Exception) {
-                Log.e(TAG, "取消注册磁贴状态广播接收器失败: ${e.message}")
-            }
-        }
-    }
+    
     
     private fun checkServiceRunningState() {
         try {
@@ -555,11 +521,6 @@ class MainActivity : AppCompatActivity() {
                 .apply()
             Log.d(TAG, "已保存服务启动状态")
 
-            // 发送广播通知总开关磁贴更新状态
-            val broadcastIntent = Intent(MAIN_TOGGLE_CHANGED_ACTION)
-            broadcastIntent.putExtra("enabled", true)
-            sendBroadcast(broadcastIntent)
-            Log.d(TAG, "已发送总开关状态变化广播给磁贴")
 
             Toast.makeText(this, "服务已启动", Toast.LENGTH_SHORT).show()
             updateServiceButton()
@@ -582,11 +543,6 @@ class MainActivity : AppCompatActivity() {
             .apply()
         Log.d(TAG, "已保存服务停止状态")
 
-        // 发送广播通知总开关磁贴更新状态
-        val broadcastIntent = Intent(MAIN_TOGGLE_CHANGED_ACTION)
-        broadcastIntent.putExtra("enabled", false)
-        sendBroadcast(broadcastIntent)
-        Log.d(TAG, "已发送总开关状态变化广播给磁贴")
 
         Toast.makeText(this, "服务已停止", Toast.LENGTH_SHORT).show()
         updateServiceButton()
@@ -734,11 +690,6 @@ class MainActivity : AppCompatActivity() {
             // 更新UI显示
             updateBaiduModeStatus(isChecked)
 
-            // 发送广播通知磁贴更新状态
-            val intent = Intent(BAIDU_MODE_CHANGED_ACTION)
-            intent.putExtra("enabled", isChecked)
-            sendBroadcast(intent)
-            Log.d(TAG, "已发送百度网盘模式状态变化广播")
 
             Toast.makeText(
                 this,
@@ -791,10 +742,7 @@ class MainActivity : AppCompatActivity() {
             sendBroadcast(intent)
             Log.d(TAG, "已发送TikTok模式状态变化广播")
 
-            // 当启用TikTok模式时，集成A_DTC功能
-            if (isChecked) {
-                integrateDTCFunctionality()
-            }
+            
 
             Toast.makeText(
                 this,
@@ -819,10 +767,6 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun integrateDTCFunctionality() {
-        // A_DTC项目功能已集成
-        Log.d(TAG, "A_DTC项目功能已集成到TikTok模式中")
-    }
 
     private fun disableOtherModeSwitches(currentModeEnabled: String) {
         Log.d(TAG, "关闭其他模式开关，当前启用的模式: $currentModeEnabled")
@@ -1043,6 +987,6 @@ class MainActivity : AppCompatActivity() {
             unbindService(serviceConnection)
         }
         // 取消注册广播接收器
-        unregisterTileReceiver()
+        
     }
 }
