@@ -1302,36 +1302,9 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         }, null)
     }
 
-    // 处理F5键短按（原有功能）
+    // 处理F5键短按（原上方向键功能）
     private fun handleF5ShortPress() {
-        Log.e(TAG, "F5键短按 - 执行原有点击功能")
-        val orientation = resources.configuration.orientation
-        val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
-
-        if (isTvModeEnabled) {
-            // 电视模式：根据屏幕方向选择不同坐标
-            if (isPortrait) {
-                Log.e(TAG, "电视模式竖屏状态，忽略F5键短按操作")
-            } else {
-                Log.e(TAG, "电视模式横屏状态，执行点击坐标(1885,60)操作")
-                performSingleClick(1885f, 60f)
-                Log.e(TAG, "电视模式F5键横屏点击操作完成")
-            }
-        } else {
-            // 普通模式：原有逻辑
-            if (isPortrait) {
-                Log.e(TAG, "当前为竖屏状态，忽略F5键短按操作")
-            } else {
-                Log.e(TAG, "当前为横屏状态，执行点击坐标(2402,74)操作")
-                performSingleClick(2402f, 74f)
-                Log.e(TAG, "F5键横屏点击操作完成")
-            }
-        }
-    }
-
-    // 处理F5键长挈1秒（原上方向键功能）
-    private fun handleF5LongPress() {
-        Log.e(TAG, "F5键长挈1秒触发 - 执行原上方向键功能")
+        Log.e(TAG, "F5键短按 - 执行原上方向键功能")
 
         // 只在油管模式下才执行原上方向键功能
         if (isDoubleClickMappingEnabled || isTvModeEnabled) {
@@ -1344,15 +1317,42 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
 
                 if (isLandscape) {
-                    Log.e(TAG, "F5长按 - 横屏模式，执行单击屏幕坐标(520,107)操作")
+                    Log.e(TAG, "F5短按 - 横屏模式，执行单击屏幕坐标(520,107)操作")
                     performSingleClick(520f, 107f)
-                    Log.e(TAG, "F5长按单击操作完成")
+                    Log.e(TAG, "F5短按单击操作完成")
                 } else {
-                    Log.w(TAG, "F5长按 - 竖屏模式，上方向键功能已禁用，只在横屏模式下生效")
+                    Log.w(TAG, "F5短按 - 竖屏模式，上方向键功能已禁用，只在横屏模式下生效")
                 }
             }
         } else {
-            Log.w(TAG, "F5长按 - 非油管模式，不执行上方向键功能")
+            Log.w(TAG, "F5短按 - 非油管模式，不执行上方向键功能")
+        }
+    }
+
+    // 处理F5键长按1秒（原有点击功能）
+    private fun handleF5LongPress() {
+        Log.e(TAG, "F5键长按1秒触发 - 执行原有点击功能")
+        val orientation = resources.configuration.orientation
+        val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+
+        if (isTvModeEnabled) {
+            // 电视模式：根据屏幕方向选择不同坐标
+            if (isPortrait) {
+                Log.e(TAG, "电视模式竖屏状态，忽略F5键长按操作")
+            } else {
+                Log.e(TAG, "电视模式横屏状态，执行点击坐标(1885,60)操作")
+                performSingleClick(1885f, 60f)
+                Log.e(TAG, "电视模式F5键横屏点击操作完成")
+            }
+        } else {
+            // 普通模式：原有逻辑
+            if (isPortrait) {
+                Log.e(TAG, "当前为竖屏状态，忽略F5键长按操作")
+            } else {
+                Log.e(TAG, "当前为横屏状态，执行点击坐标(2402,74)操作")
+                performSingleClick(2402f, 74f)
+                Log.e(TAG, "F5键横屏点击操作完成")
+            }
         }
     }
 
