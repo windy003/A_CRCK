@@ -31,6 +31,16 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     private var isF5LongPressTriggered = false // F5长按是否已触发
     private var lastVolumeBeforeMute = -1 // 静音前的音量
     private var isMuted = false // 当前是否静音
+
+    // 左方向键长按检测相关变量
+    private var dpadLeftPressTime = 0L // 左方向键按下时间戳
+    private var dpadLeftHandler: android.os.Handler? = null // 左方向键长按处理器
+    private var isDpadLeftLongPressTriggered = false // 左方向键长按是否已触发
+
+    // 右方向键长按检测相关变量
+    private var dpadRightPressTime = 0L // 右方向键按下时间戳
+    private var dpadRightHandler: android.os.Handler? = null // 右方向键长按处理器
+    private var isDpadRightLongPressTriggered = false // 右方向键长按是否已触发
     
     companion object {
         private const val TAG = "KeyMapperAccessibility"
@@ -72,6 +82,8 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         instance = this
         f5KeyHandler = android.os.Handler()
+        dpadLeftHandler = android.os.Handler()
+        dpadRightHandler = android.os.Handler()
         
         // 从SharedPreferences读取初始状态
         val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -507,49 +519,45 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
             
-            // 处理dpad left键 - 根据模式进行不同映射
+            // 处理dpad left键 - 支持长按检测
             KeyEvent.KEYCODE_DPAD_LEFT -> {  // 21 方向键左
                 Log.e(TAG, "!!! 检测到dpad left按键: ${event.keyCode} !!!")
 
-                if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (isTiktokModeEnabled) {
-                        // TikTok模式：左滑操作
-                        Log.e(TAG, "TikTok模式 - 执行左滑操作")
-                        performTiktokLeftSwipe()
-                        Log.e(TAG, "TikTok模式左滑操作完成")
-                        return true
-                    } else if (isTvModeEnabled) {
-                        // 电视模式：根据屏幕方向选择不同坐标
-                        val orientation = resources.configuration.orientation
-                        val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+                when (event.action) {
+                    KeyEvent.ACTION_DOWN -> {
+                        // 记录按下时间
+                        dpadLeftPressTime = System.currentTimeMillis()
+                        isDpadLeftLongPressTriggered = false
 
-                        if (isPortrait) {
-                            Log.e(TAG, "电视模式竖屏 - 执行双击屏幕坐标(201,253)操作")
-                            performDoubleClick(201f, 253f)
-                            Log.e(TAG, "电视模式竖屏双击操作完成")
-                        } else {
-                            Log.e(TAG, "电视模式横屏 - 执行双击屏幕坐标(133,439)操作")
-                            performDoubleClick(133f, 439f)
-                            Log.e(TAG, "电视模式横屏双击操作完成")
-                        }
-                        return true
-                    } else if (isBaiduModeEnabled) {
-                        Log.e(TAG, "百度网盘模式 - 执行上一曲操作")
-                        sendMediaPrevious()
-                        Log.e(TAG, "上一曲操作完成")
-                        return true
-                    } else if (isDoubleClickMappingEnabled) {
-                        Log.e(TAG, "普通模式 - 执行双击屏幕坐标(133,439)操作")
-                        performDoubleClick(133f, 439f)
-                        Log.e(TAG, "双击操作完成")
-                        return true
-                    } else {
-                        Log.w(TAG, "双击映射功能已关闭，恢复左方向键原有功能")
-                        return super.onKeyEvent(event) // 不拦截，让系统处理原有功能
+                        // 设置1秒后触发长按事件
+                        dpadLeftHandler?.postDelayed({
+                            if (dpadLeftPressTime > 0 && !isDpadLeftLongPressTriggered) {
+                                isDpadLeftLongPressTriggered = true
+                                handleDpadLeftLongPress()
+                            }
+                        }, 1000) // 1秒长按
+
+                        Log.e(TAG, "左方向键按下，开始计时...")
                     }
-                } else {
-                    return if (isTiktokModeEnabled || isTvModeEnabled || isBaiduModeEnabled || isDoubleClickMappingEnabled) true else super.onKeyEvent(event)
+
+                    KeyEvent.ACTION_UP -> {
+                        val pressDuration = System.currentTimeMillis() - dpadLeftPressTime
+                        Log.e(TAG, "左方向键松开，按下时长: ${pressDuration}ms")
+
+                        // 清除长按计时器
+                        dpadLeftHandler?.removeCallbacksAndMessages(null)
+
+                        if (!isDpadLeftLongPressTriggered && pressDuration < 1000) {
+                            // 短按：执行原有的功能
+                            handleDpadLeftShortPress()
+                        }
+
+                        // 重置状态
+                        dpadLeftPressTime = 0L
+                        isDpadLeftLongPressTriggered = false
+                    }
                 }
+                return true // 拦截原始事件
             }
             
             // 处理dpad down键 - 根据模式进行不同映射
@@ -693,49 +701,42 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
 
-            // 处理dpad right键 - 根据模式进行不同映射
+            // 处理dpad right键 - 支持长按检测
             KeyEvent.KEYCODE_DPAD_RIGHT -> {  // 22 方向键右
                 Log.e(TAG, "!!! 检测到dpad right按键: ${event.keyCode} !!!")
 
-                if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (isTiktokModeEnabled) {
-                        // TikTok模式：右滑操作
-                        Log.e(TAG, "TikTok模式 - 执行右滑操作")
-                        performTiktokRightSwipe()
-                        Log.e(TAG, "TikTok模式右滑操作完成")
-                        return true
-                    } else if (isTvModeEnabled) {
-                        // 电视模式：根据屏幕方向选择不同坐标
-                        val orientation = resources.configuration.orientation
-                        val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+                when (event.action) {
+                    KeyEvent.ACTION_DOWN -> {
+                        // 记录按下时间
+                        dpadRightPressTime = System.currentTimeMillis()
+                        isDpadRightLongPressTriggered = false
 
-                        if (isPortrait) {
-                            Log.e(TAG, "电视模式竖屏 - 执行双击屏幕坐标(810,265)操作")
-                            performDoubleClick(810f, 265f)
-                            Log.e(TAG, "电视模式竖屏双击操作完成")
-                        } else {
-                            Log.e(TAG, "电视模式横屏 - 执行双击屏幕坐标(1780,355)操作")
-                            performDoubleClick(1780f, 355f)
-                            Log.e(TAG, "电视模式横屏双击操作完成")
-                        }
-                    } else if (isBaiduModeEnabled) {
-                        Log.e(TAG, "百度网盘模式 - 执行下一曲操作")
-                        sendMediaNext()
-                        Log.e(TAG, "下一曲操作完成")
-                    } else {
-                        // 普通模式：根据屏幕方向双击不同坐标实现快进功能
-                        val orientation = resources.configuration.orientation
-                        val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+                        // 设置1秒后触发长按事件
+                        dpadRightHandler?.postDelayed({
+                            if (dpadRightPressTime > 0 && !isDpadRightLongPressTriggered) {
+                                isDpadRightLongPressTriggered = true
+                                handleDpadRightLongPress()
+                            }
+                        }, 1000) // 1秒长按
 
-                        if (isPortrait) {
-                            Log.e(TAG, "普通模式竖屏 - 执行双击屏幕坐标(810,265)操作")
-                            performDoubleClick(810f, 265f)
-                            Log.e(TAG, "竖屏模式双击操作完成")
-                        } else {
-                            Log.e(TAG, "普通模式横屏 - 执行双击屏幕坐标(1940,384)操作")
-                            performDoubleClick(1940f, 384f)
-                            Log.e(TAG, "横屏模式双击操作完成")
+                        Log.e(TAG, "右方向键按下，开始计时...")
+                    }
+
+                    KeyEvent.ACTION_UP -> {
+                        val pressDuration = System.currentTimeMillis() - dpadRightPressTime
+                        Log.e(TAG, "右方向键松开，按下时长: ${pressDuration}ms")
+
+                        // 清除长按计时器
+                        dpadRightHandler?.removeCallbacksAndMessages(null)
+
+                        if (!isDpadRightLongPressTriggered && pressDuration < 1000) {
+                            // 短按：执行原有的功能
+                            handleDpadRightShortPress()
                         }
+
+                        // 重置状态
+                        dpadRightPressTime = 0L
+                        isDpadRightLongPressTriggered = false
                     }
                 }
                 return true // 拦截原始事件
@@ -1428,11 +1429,109 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         }
     }
 
+    // 处理左方向键短按（原有功能）
+    private fun handleDpadLeftShortPress() {
+        Log.e(TAG, "左方向键短按 - 执行原有功能")
+
+        if (isTiktokModeEnabled) {
+            // TikTok模式：左滑操作
+            Log.e(TAG, "TikTok模式 - 执行左滑操作")
+            performTiktokLeftSwipe()
+            Log.e(TAG, "TikTok模式左滑操作完成")
+        } else if (isTvModeEnabled) {
+            // 电视模式：根据屏幕方向选择不同坐标
+            val orientation = resources.configuration.orientation
+            val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+
+            if (isPortrait) {
+                Log.e(TAG, "电视模式竖屏 - 执行双击屏幕坐标(201,253)操作")
+                performDoubleClick(201f, 253f)
+                Log.e(TAG, "电视模式竖屏双击操作完成")
+            } else {
+                Log.e(TAG, "电视模式横屏 - 执行双击屏幕坐标(133,439)操作")
+                performDoubleClick(133f, 439f)
+                Log.e(TAG, "电视模式横屏双击操作完成")
+            }
+        } else if (isBaiduModeEnabled) {
+            Log.e(TAG, "百度网盘模式 - 执行上一曲操作")
+            sendMediaPrevious()
+            Log.e(TAG, "上一曲操作完成")
+        } else if (isDoubleClickMappingEnabled) {
+            Log.e(TAG, "普通模式 - 执行双击屏幕坐标(133,439)操作")
+            performDoubleClick(133f, 439f)
+            Log.e(TAG, "双击操作完成")
+        } else {
+            Log.w(TAG, "双击映射功能已关闭，恢复左方向键原有功能")
+        }
+    }
+
+    // 处理左方向键长按1秒（播放上一个）
+    private fun handleDpadLeftLongPress() {
+        Log.e(TAG, "左方向键长按1秒触发 - 播放上一个")
+        sendMediaPrevious()
+        Log.e(TAG, "左方向键长按 - 上一个播放操作完成")
+    }
+
+    // 处理右方向键短按（原有功能）
+    private fun handleDpadRightShortPress() {
+        Log.e(TAG, "右方向键短按 - 执行原有功能")
+
+        if (isTiktokModeEnabled) {
+            // TikTok模式：右滑操作
+            Log.e(TAG, "TikTok模式 - 执行右滑操作")
+            performTiktokRightSwipe()
+            Log.e(TAG, "TikTok模式右滑操作完成")
+        } else if (isTvModeEnabled) {
+            // 电视模式：根据屏幕方向选择不同坐标
+            val orientation = resources.configuration.orientation
+            val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+
+            if (isPortrait) {
+                Log.e(TAG, "电视模式竖屏 - 执行双击屏幕坐标(810,265)操作")
+                performDoubleClick(810f, 265f)
+                Log.e(TAG, "电视模式竖屏双击操作完成")
+            } else {
+                Log.e(TAG, "电视模式横屏 - 执行双击屏幕坐标(1780,355)操作")
+                performDoubleClick(1780f, 355f)
+                Log.e(TAG, "电视模式横屏双击操作完成")
+            }
+        } else if (isBaiduModeEnabled) {
+            Log.e(TAG, "百度网盘模式 - 执行下一曲操作")
+            sendMediaNext()
+            Log.e(TAG, "下一曲操作完成")
+        } else {
+            // 普通模式：根据屏幕方向双击不同坐标实现快进功能
+            val orientation = resources.configuration.orientation
+            val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+
+            if (isPortrait) {
+                Log.e(TAG, "普通模式竖屏 - 执行双击屏幕坐标(810,265)操作")
+                performDoubleClick(810f, 265f)
+                Log.e(TAG, "竖屏模式双击操作完成")
+            } else {
+                Log.e(TAG, "普通模式横屏 - 执行双击屏幕坐标(1940,384)操作")
+                performDoubleClick(1940f, 384f)
+                Log.e(TAG, "横屏模式双击操作完成")
+            }
+        }
+    }
+
+    // 处理右方向键长按1秒（播放下一个）
+    private fun handleDpadRightLongPress() {
+        Log.e(TAG, "右方向键长按1秒触发 - 播放下一个")
+        sendMediaNext()
+        Log.e(TAG, "右方向键长按 - 下一个播放操作完成")
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         instance = null
         f5KeyHandler?.removeCallbacksAndMessages(null)
         f5KeyHandler = null
+        dpadLeftHandler?.removeCallbacksAndMessages(null)
+        dpadLeftHandler = null
+        dpadRightHandler?.removeCallbacksAndMessages(null)
+        dpadRightHandler = null
         Log.d(TAG, "无障碍服务已销毁")
     }
 }
