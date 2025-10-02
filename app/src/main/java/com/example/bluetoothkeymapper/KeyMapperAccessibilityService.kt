@@ -1205,12 +1205,12 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         val path = Path().apply {
             val startX = 566f
             val endX = startX - swipePixels.toFloat()  // 向左滑动客制化像素
-            val y = 2213f
+            val y = 2270f
             moveTo(startX, y)
             lineTo(endX, y)
         }
         performTiktokSwipeGesture(path)
-        Log.d(TAG, "执行TikTok左滑手势: 从(566,2213)向左滑动${swipePixels}px")
+        Log.d(TAG, "执行TikTok左滑手势: 从(566,2270)向左滑动${swipePixels}px")
     }
 
     private fun performTiktokRightSwipe() {
@@ -1223,12 +1223,12 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         val path = Path().apply {
             val startX = 566f
             val endX = startX + swipePixels.toFloat()  // 向右滑动客制化像素
-            val y = 2213f
+            val y = 2270f
             moveTo(startX, y)
             lineTo(endX, y)
         }
         performTiktokSwipeGesture(path)
-        Log.d(TAG, "执行TikTok右滑手势: 从(566,2213)向右滑动${swipePixels}px")
+        Log.d(TAG, "执行TikTok右滑手势: 从(566,2270)向右滑动${swipePixels}px")
     }
 
     private fun performTiktokCenterClick() {
@@ -1257,12 +1257,12 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         val path = Path().apply {
             val startX = 900f   // 从适中位置开始，避免被误认为返回手势
             val endX = 0f       // 滑动到最左边(0位置)，实现跳转到开头
-            val y = 2213f       // 使用与左右滑动相同的Y坐标
+            val y = 2270f       // 使用与左右滑动相同的Y坐标
             moveTo(startX, y)
             lineTo(endX, y)
         }
         performTiktokSwipeGesture(path)
-        Log.d(TAG, "执行TikTok进度条重置: 从(900,2213)滑动到(0,2213)")
+        Log.d(TAG, "执行TikTok进度条重置: 从(900,2270)滑动到(0,2270)")
     }
 
     private fun performTiktokSwipeGesture(path: Path) {

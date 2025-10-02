@@ -270,10 +270,10 @@ class MainActivity : AppCompatActivity() {
             enableBluetooth()
         }
 
-        // 设置客制化像素保存按钮点击事件
+        // 设置视频时长保存按钮点击事件
         binding.btnSavePixels.setOnClickListener {
-            Log.d(TAG, "点击保存像素值按钮")
-            saveSwipePixels()
+            Log.d(TAG, "点击保存视频时长按钮")
+            saveVideoDuration()
         }
         
         // 设置YouTube模式开关
@@ -301,8 +301,8 @@ class MainActivity : AppCompatActivity() {
         binding.switchAutoMode.isChecked = isAutoModeEnabled
         updateAutoModeStatus(isAutoModeEnabled)
 
-        // 初始化客制化像素值
-        loadSwipePixels()
+        // 初始化视频时长设置
+        loadVideoDuration()
 
         // 设置开关监听器
         setAllModeListeners()
@@ -853,35 +853,78 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "已发送模式状态变化广播: $action = $enabled")
     }
 
-    private fun saveSwipePixels() {
-        val pixelsText = binding.etSwipePixels.text.toString()
-        if (pixelsText.isNotEmpty()) {
-            try {
-                val pixels = pixelsText.toInt()
-                if (pixels > 0) {
-                    // 保存到两个地方：主应用的SharedPreferences和TikTok专用的SharedPreferences
-                    sharedPreferences.edit().putInt("swipe_pixels", pixels).apply()
+    private fun saveVideoDuration() {
+        val minutesText = binding.etMinutes.text.toString()
+        val secondsText = binding.etSeconds.text.toString()
 
-                    val tiktokPrefs = getSharedPreferences("TikTokRemoteControl", Context.MODE_PRIVATE)
-                    tiktokPrefs.edit().putInt("swipe_pixels", pixels).apply()
+        try {
+            val minutes = if (minutesText.isNotEmpty()) minutesText.toInt() else 0
+            val seconds = if (secondsText.isNotEmpty()) secondsText.toInt() else 0
 
-                    Toast.makeText(this, "滑动像素值已保存: ${pixels}px", Toast.LENGTH_SHORT).show()
-                    Log.d(TAG, "滑动像素值已保存: ${pixels}px")
-                } else {
-                    Toast.makeText(this, "请输入大于0的数值", Toast.LENGTH_SHORT).show()
-                }
-            } catch (e: NumberFormatException) {
-                Toast.makeText(this, "请输入有效的数字", Toast.LENGTH_SHORT).show()
+            if (minutes == 0 && seconds == 0) {
+                Toast.makeText(this, "请输入视频时长", Toast.LENGTH_SHORT).show()
+                return
             }
-        } else {
-            Toast.makeText(this, "请输入像素值", Toast.LENGTH_SHORT).show()
+
+            if (seconds >= 60) {
+                Toast.makeText(this, "秒数不能超过59", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            // 计算总秒数
+            val totalSeconds = minutes * 60 + seconds
+
+            // 计算分块数（总秒数除以5）
+            val blockCount = totalSeconds / 5
+
+            if (blockCount == 0) {
+                Toast.makeText(this, "视频时长太短，至少需要5秒", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            // 计算每次滑动的像素值（1080除以分块数）
+            val swipePixels = 1080 / blockCount
+
+            // 保存视频时长和计算出的像素值
+            sharedPreferences.edit()
+                .putInt("video_minutes", minutes)
+                .putInt("video_seconds", seconds)
+                .putInt("swipe_pixels", swipePixels)
+                .apply()
+
+            val tiktokPrefs = getSharedPreferences("TikTokRemoteControl", Context.MODE_PRIVATE)
+            tiktokPrefs.edit().putInt("swipe_pixels", swipePixels).apply()
+
+            // 更新说明文字显示计算结果
+            binding.tvCalculatedPixels.text =
+                "视频时长: ${minutes}分${seconds}秒 | 总秒数: ${totalSeconds}秒 | 分块数: ${blockCount} | 每次滑动: ${swipePixels}px"
+
+            Toast.makeText(this, "已保存设置，每次滑动 ${swipePixels}px", Toast.LENGTH_LONG).show()
+            Log.d(TAG, "视频时长已保存: ${minutes}分${seconds}秒，总秒数: ${totalSeconds}秒，分块数: ${blockCount}，滑动像素: ${swipePixels}px")
+        } catch (e: NumberFormatException) {
+            Toast.makeText(this, "请输入有效的数字", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun loadSwipePixels() {
+    private fun loadVideoDuration() {
+        val savedMinutes = sharedPreferences.getInt("video_minutes", 0)
+        val savedSeconds = sharedPreferences.getInt("video_seconds", 0)
         val savedPixels = sharedPreferences.getInt("swipe_pixels", 100)
-        binding.etSwipePixels.setText(savedPixels.toString())
-        Log.d(TAG, "加载滑动像素值: ${savedPixels}px")
+
+        if (savedMinutes > 0 || savedSeconds > 0) {
+            binding.etMinutes.setText(savedMinutes.toString())
+            binding.etSeconds.setText(savedSeconds.toString())
+
+            val totalSeconds = savedMinutes * 60 + savedSeconds
+            val blockCount = totalSeconds / 5
+
+            binding.tvCalculatedPixels.text =
+                "视频时长: ${savedMinutes}分${savedSeconds}秒 | 总秒数: ${totalSeconds}秒 | 分块数: ${blockCount} | 每次滑动: ${savedPixels}px"
+        } else {
+            binding.tvCalculatedPixels.text = "说明：输入视频总时长后，系统会自动计算每次滑动的像素值"
+        }
+
+        Log.d(TAG, "加载视频时长: ${savedMinutes}分${savedSeconds}秒，滑动像素: ${savedPixels}px")
     }
 
     private fun removeAllModeListeners() {

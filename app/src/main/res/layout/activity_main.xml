@@ -254,7 +254,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="客制化滑动像素设置"
+        android:text="TikTok/抖音视频时长设置"
         android:textSize="18sp"
         android:textStyle="bold"
         android:layout_marginBottom="16dp" />
@@ -269,18 +269,43 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="滑动像素值："
+            android:text="视频时长："
             android:textSize="16sp"
             android:layout_marginEnd="8dp" />
 
         <EditText
-            android:id="@+id/etSwipePixels"
+            android:id="@+id/etMinutes"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="输入滑动像素值 (如: 100)"
+            android:hint="分钟"
             android:inputType="number"
             android:minHeight="48dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="分"
+            android:textSize="16sp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="8dp" />
+
+        <EditText
+            android:id="@+id/etSeconds"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="秒"
+            android:inputType="number"
+            android:minHeight="48dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="秒"
+            android:textSize="16sp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="8dp" />
 
         <Button
             android:id="@+id/btnSavePixels"
@@ -292,9 +317,10 @@
     </LinearLayout>
 
     <TextView
+        android:id="@+id/tvCalculatedPixels"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="说明：此设置仅在TikTok/抖音模式下生效，用于控制滑动手势的距离"
+        android:text="说明：输入视频总时长后，系统会自动计算每次滑动的像素值"
         android:textSize="14sp"
         android:textColor="@android:color/darker_gray"
         android:layout_marginBottom="24dp" />
@@ -302,7 +328,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="使用说明：\n1. 确保蓝牙已启用并配对遥控器\n2. 授予所需权限\n3. 在设置中启用无障碍服务\n4. 启动服务\n5. 按遥控器OK键映射为媒体播放/暂停\n6. YouTube模式：dpad left双击屏幕后退5秒，home键竖屏点击(1029,649)，menu键横屏返回\n7. 百度网盘模式：OK键播放/暂停，左右键上一曲/下一曲\n8. 电视模式：使用16:9全屏坐标\n9. TikTok/抖音模式：左右键从(566,2213)滑动，上下键已禁用，Home键从(900,2213)滑动到(0,2213)重置进度条，OK键播放/暂停，支持客制化滑动像素"
+        android:text="使用说明：\n抖音/tiktok模式,最大滑动2分15秒,不然没有反应\n1. 确保蓝牙已启用并配对遥控器\n2. 授予所需权限\n3. 在设置中启用无障碍服务\n4. 启动服务\n5. 按遥控器OK键映射为媒体播放/暂停\n6. YouTube模式：dpad left双击屏幕后退5秒，home键竖屏点击(1029,649)，menu键横屏返回\n7. 百度网盘模式：OK键播放/暂停，左右键上一曲/下一曲\n8. 电视模式：使用16:9全屏坐标\n9. TikTok/抖音模式：输入视频分钟和秒数后自动计算滑动像素，左右键控制进度（横屏幕1080px分块），上下键已禁用，Home键重置进度条，OK键播放/暂停"
         android:textSize="14sp"
         android:layout_marginTop="16dp"
         android:background="@android:color/background_light"
