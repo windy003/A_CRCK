@@ -575,10 +575,19 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                         performSingleClick(133f, 439f)
                         Log.e(TAG, "电视模式单击操作完成")
                     } else if (isDoubleClickMappingEnabled) {
-                        // YouTube模式：执行单击屏幕坐标(133,439) - 显示/隐藏控制器
-                        Log.e(TAG, "YouTube模式 - 执行单击屏幕坐标(133,439)操作 - 显示/隐藏控制器")
-                        performSingleClick(133f, 439f)
-                        Log.e(TAG, "YouTube模式下方向键操作完成")
+                        // YouTube模式：根据屏幕方向选择不同坐标
+                        val orientation = resources.configuration.orientation
+                        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+                        if (isLandscape) {
+                            Log.e(TAG, "YouTube横屏模式 - 执行单击屏幕坐标(1900,381)操作")
+                            performSingleClick(1900f, 381f)
+                            Log.e(TAG, "YouTube横屏模式下方向键操作完成")
+                        } else {
+                            Log.e(TAG, "YouTube竖屏模式 - 执行单击屏幕坐标(133,439)操作 - 显示/隐藏控制器")
+                            performSingleClick(133f, 439f)
+                            Log.e(TAG, "YouTube竖屏模式下方向键操作完成")
+                        }
                     } else {
                         Log.e(TAG, "执行点击CC按钮操作 - 打开/关闭YouTube CC字幕")
                         sendKeyC()
@@ -610,10 +619,19 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                         performSingleClick(133f, 439f)
                         Log.e(TAG, "电视模式返回键显示/隐藏控制器操作完成")
                     } else if (isDoubleClickMappingEnabled) {
-                        // YouTube模式：显示/隐藏控制器
-                        Log.e(TAG, "YouTube模式 - 执行显示/隐藏控制器操作")
-                        performSingleClick(133f, 439f)
-                        Log.e(TAG, "YouTube模式返回键显示/隐藏控制器操作完成")
+                        // YouTube模式：根据屏幕方向选择不同坐标
+                        val orientation = resources.configuration.orientation
+                        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+                        if (isLandscape) {
+                            Log.e(TAG, "YouTube横屏模式 - 执行单击屏幕坐标(1900,381)操作")
+                            performSingleClick(1900f, 381f)
+                            Log.e(TAG, "YouTube横屏模式返回键操作完成")
+                        } else {
+                            Log.e(TAG, "YouTube竖屏模式 - 执行显示/隐藏控制器操作")
+                            performSingleClick(133f, 439f)
+                            Log.e(TAG, "YouTube竖屏模式返回键显示/隐藏控制器操作完成")
+                        }
                     } else {
                         Log.e(TAG, "执行单击屏幕坐标(133,439)操作 - 显示/隐藏控制器")
                         performSingleClick(133f, 439f)
