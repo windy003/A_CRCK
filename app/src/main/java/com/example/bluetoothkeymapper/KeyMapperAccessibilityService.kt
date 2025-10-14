@@ -570,10 +570,10 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                         Log.e(TAG, "TikTok模式 - 下方向键功能已禁用")
                         return true // 拦截事件但不执行任何操作
                     } else if (isTvModeEnabled) {
-                        // 电视模式：执行单击屏幕坐标(133,439) - 显示/隐藏控制器
-                        Log.e(TAG, "电视模式 - 执行单击屏幕坐标(133,439)操作 - 显示/隐藏控制器")
-                        performSingleClick(133f, 439f)
-                        Log.e(TAG, "电视模式单击操作完成")
+                        // 电视模式：执行单击屏幕坐标(1633,349)
+                        Log.e(TAG, "电视模式 - 执行单击屏幕坐标(1633,349)操作")
+                        performSingleClick(1633f, 349f)
+                        Log.e(TAG, "电视模式下方向键单击操作完成")
                     } else if (isDoubleClickMappingEnabled) {
                         // YouTube模式：根据屏幕方向选择不同坐标
                         val orientation = resources.configuration.orientation
@@ -614,10 +614,10 @@ class KeyMapperAccessibilityService : AccessibilityService() {
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
                     if (isTvModeEnabled) {
-                        // 电视模式：显示/隐藏控制器
-                        Log.e(TAG, "电视模式 - 执行显示/隐藏控制器操作")
-                        performSingleClick(133f, 439f)
-                        Log.e(TAG, "电视模式返回键显示/隐藏控制器操作完成")
+                        // 电视模式：执行单击屏幕坐标(1633,349)
+                        Log.e(TAG, "电视模式 - 执行单击屏幕坐标(1633,349)操作")
+                        performSingleClick(1633f, 349f)
+                        Log.e(TAG, "电视模式返回键操作完成")
                     } else if (isDoubleClickMappingEnabled) {
                         // YouTube模式：根据屏幕方向选择不同坐标
                         val orientation = resources.configuration.orientation
