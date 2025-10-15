@@ -476,12 +476,12 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         android.util.Log.i(TAG, "设备: ${event.device?.name ?: "未知"}")
         android.util.Log.i(TAG, "外部设备: ${event.device?.isExternal ?: false}")
         android.util.Log.i(TAG, "扫描码: ${event.scanCode}")
-        
+
         // 详细的调试日志
         val deviceInfo = event.device?.let { device ->
             "name='${device.name}', id=${device.id}, productId=${device.productId}, vendorId=${device.vendorId}, isExternal=${device.isExternal}"
         } ?: "null"
-        
+
         Log.w(TAG, "=== 完整按键事件详情 ===")
         Log.w(TAG, "键码: ${event.keyCode}")
         Log.w(TAG, "动作: ${if (event.action == KeyEvent.ACTION_DOWN) "按下" else if (event.action == KeyEvent.ACTION_UP) "松开" else "其他(${event.action})"}")
@@ -489,6 +489,24 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         Log.w(TAG, "扫描码: ${event.scanCode}")
         Log.w(TAG, "重复次数: ${event.repeatCount}")
         Log.w(TAG, "==========================")
+
+        // ===== 检查当前前台应用是否为目标应用 =====
+        val targetApps = setOf(
+            YOUTUBE_PACKAGE,           // YouTube
+            YOUTUBE_MUSIC_PACKAGE,     // YouTube Music
+            TIKTOK_PACKAGE,            // TikTok
+            TIKTOK_LITE_PACKAGE,       // TikTok Lite
+            DOUYIN_PACKAGE,            // 抖音
+            DOUYIN_LITE_PACKAGE,       // 抖音 Lite
+            BAIDU_DISK_PACKAGE         // 百度网盘
+        )
+
+        if (currentForegroundApp !in targetApps) {
+            Log.w(TAG, "当前应用 ($currentForegroundApp) 不是目标应用，不处理按键事件")
+            return super.onKeyEvent(event)  // 不拦截，让系统处理
+        }
+
+        Log.i(TAG, "当前应用 ($currentForegroundApp) 是目标应用，继续处理按键事件")
         
         // 处理Enter键和其他OK键 - 根据模式进行不同映射
         when (event.keyCode) {
