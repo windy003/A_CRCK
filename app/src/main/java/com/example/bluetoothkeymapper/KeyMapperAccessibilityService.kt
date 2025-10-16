@@ -154,6 +154,12 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
                 val packageName = event.packageName?.toString()
                 if (!packageName.isNullOrEmpty() && packageName != currentForegroundApp) {
+                    // 忽略系统应用的窗口变化，避免影响按键处理
+                    if (SYSTEM_PACKAGES.contains(packageName)) {
+                        Log.d(TAG, "检测到系统应用窗口: $packageName，不更新前台应用")
+                        return
+                    }
+
                     currentForegroundApp = packageName
                     Log.e(TAG, "=== 前台应用切换 ===")
                     Log.e(TAG, "新应用: $packageName")
@@ -501,7 +507,32 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             BAIDU_DISK_PACKAGE         // 百度网盘
         )
 
-        if (currentForegroundApp !in targetApps) {
+        // 检查是否为目标应用（支持包名前缀匹配和空值处理）
+        val isTargetApp = if (currentForegroundApp.isEmpty()) {
+            // 如果还未检测到前台应用，允许处理按键（初始状态）
+            Log.w(TAG, "前台应用未检测到，允许处理按键事件")
+            true
+        } else if (currentForegroundApp in targetApps) {
+            // 精确匹配目标应用
+            true
+        } else if (currentForegroundApp.startsWith("com.google.android.youtube")) {
+            // YouTube相关的所有包（包括子Activity）
+            Log.i(TAG, "检测到YouTube相关应用: $currentForegroundApp")
+            true
+        } else if (currentForegroundApp.startsWith("com.zhiliaoapp.musically") ||
+                   currentForegroundApp.startsWith("com.ss.android.ugc.aweme")) {
+            // TikTok/抖音相关的所有包
+            Log.i(TAG, "检测到TikTok/抖音相关应用: $currentForegroundApp")
+            true
+        } else if (currentForegroundApp.startsWith("com.baidu.netdisk")) {
+            // 百度网盘相关的所有包
+            Log.i(TAG, "检测到百度网盘相关应用: $currentForegroundApp")
+            true
+        } else {
+            false
+        }
+
+        if (!isTargetApp) {
             Log.w(TAG, "当前应用 ($currentForegroundApp) 不是目标应用，不处理按键事件")
             return super.onKeyEvent(event)  // 不拦截，让系统处理
         }
@@ -588,9 +619,9 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                         Log.e(TAG, "TikTok模式 - 下方向键功能已禁用")
                         return true // 拦截事件但不执行任何操作
                     } else if (isTvModeEnabled) {
-                        // 电视模式：执行单击屏幕坐标(1633,349)
-                        Log.e(TAG, "电视模式 - 执行单击屏幕坐标(1633,349)操作")
-                        performSingleClick(1633f, 349f)
+                        // 电视模式：执行单击屏幕坐标(1580,407)
+                        Log.e(TAG, "电视模式 - 执行单击屏幕坐标(1580,407)操作")
+                        performSingleClick(1580f, 407f)
                         Log.e(TAG, "电视模式下方向键单击操作完成")
                     } else if (isDoubleClickMappingEnabled) {
                         // YouTube模式：根据屏幕方向选择不同坐标
@@ -632,9 +663,9 @@ class KeyMapperAccessibilityService : AccessibilityService() {
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
                     if (isTvModeEnabled) {
-                        // 电视模式：执行单击屏幕坐标(1633,349)
-                        Log.e(TAG, "电视模式 - 执行单击屏幕坐标(1633,349)操作")
-                        performSingleClick(1633f, 349f)
+                        // 电视模式：执行单击屏幕坐标(1580,407)
+                        Log.e(TAG, "电视模式 - 执行单击屏幕坐标(1580,407)操作")
+                        performSingleClick(1580f, 407f)
                         Log.e(TAG, "电视模式返回键操作完成")
                     } else if (isDoubleClickMappingEnabled) {
                         // YouTube模式：根据屏幕方向选择不同坐标
@@ -673,18 +704,18 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                     } else if (isTvModeEnabled) {
                         // 电视模式：根据屏幕方向处理
                         val orientation = resources.configuration.orientation
-                        val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+                        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
 
-                        if (isPortrait) {
+                        if (isLandscape) {
+                            // 横屏时：点击坐标(1840,833)
+                            Log.e(TAG, "电视模式横屏 - 执行单击屏幕坐标(1840,833)操作")
+                            performSingleClick(1840f, 833f)
+                            Log.e(TAG, "电视模式横屏Home键单击操作完成")
+                        } else {
                             // 竖屏时：执行相应的点击
                             Log.e(TAG, "电视模式竖屏 - 执行单击屏幕坐标(995,634)操作")
                             performSingleClick(995f, 634f)
                             Log.e(TAG, "电视模式竖屏单击操作完成")
-                        } else {
-                            // 横屏时：映射为返回键
-                            Log.e(TAG, "电视模式横屏 - Home键映射为返回键功能")
-                            sendBackKey()
-                            Log.e(TAG, "电视模式横屏返回键操作完成")
                         }
                     } else if (isDoubleClickMappingEnabled) {
                         // YouTube模式：根据屏幕方向处理
@@ -718,10 +749,21 @@ class KeyMapperAccessibilityService : AccessibilityService() {
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
                     if (isTvModeEnabled) {
-                        // 电视模式：显示/隐藏字幕
-                        Log.e(TAG, "电视模式 - 执行显示/隐藏字幕操作")
-                        sendKeyC()
-                        Log.e(TAG, "电视模式Menu键显示/隐藏字幕操作完成")
+                        // 电视模式：根据屏幕方向处理
+                        val orientation = resources.configuration.orientation
+                        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+                        if (isLandscape) {
+                            // 横屏时：点击坐标(1737,77)
+                            Log.e(TAG, "电视模式横屏 - 执行单击屏幕坐标(1737,77)操作")
+                            performSingleClick(1737f, 77f)
+                            Log.e(TAG, "电视模式横屏Menu键单击操作完成")
+                        } else {
+                            // 竖屏时：显示/隐藏字幕
+                            Log.e(TAG, "电视模式竖屏 - 执行显示/隐藏字幕操作")
+                            sendKeyC()
+                            Log.e(TAG, "电视模式竖屏Menu键显示/隐藏字幕操作完成")
+                        }
                     } else if (isDoubleClickMappingEnabled) {
                         // YouTube模式：显示/隐藏字幕
                         Log.e(TAG, "YouTube模式 - 执行显示/隐藏字幕操作")
@@ -1343,8 +1385,12 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     private fun handleF5ShortPress() {
         Log.e(TAG, "F5键短按 - 执行原上方向键功能")
 
-        // 只在油管模式下才执行原上方向键功能
-        if (isDoubleClickMappingEnabled || isTvModeEnabled) {
+        if (isTvModeEnabled) {
+            // 电视模式：点击坐标(1079,84)
+            Log.e(TAG, "电视模式 - F5短按，执行单击屏幕坐标(1079,84)操作")
+            performSingleClick(1079f, 84f)
+            Log.e(TAG, "电视模式F5短按单击操作完成")
+        } else if (isDoubleClickMappingEnabled) {
             if (isTiktokModeEnabled) {
                 // TikTok模式：禁用上方向键功能
                 Log.e(TAG, "TikTok模式 - 上方向键功能已禁用")
@@ -1369,20 +1415,17 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     // 处理F5键长按1秒（原有点击功能）
     private fun handleF5LongPress() {
         Log.e(TAG, "F5键长按1秒触发 - 执行原有点击功能")
-        val orientation = resources.configuration.orientation
-        val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
 
         if (isTvModeEnabled) {
-            // 电视模式：根据屏幕方向选择不同坐标
-            if (isPortrait) {
-                Log.e(TAG, "电视模式竖屏状态，忽略F5键长按操作")
-            } else {
-                Log.e(TAG, "电视模式横屏状态，执行点击坐标(1885,60)操作")
-                performSingleClick(1885f, 60f)
-                Log.e(TAG, "电视模式F5键横屏点击操作完成")
-            }
+            // 电视模式：点击坐标(1873,83)
+            Log.e(TAG, "电视模式 - F5长按，执行点击坐标(1873,83)操作")
+            performSingleClick(1873f, 83f)
+            Log.e(TAG, "电视模式F5键长按点击操作完成")
         } else {
             // 普通模式：原有逻辑
+            val orientation = resources.configuration.orientation
+            val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
+
             if (isPortrait) {
                 Log.e(TAG, "当前为竖屏状态，忽略F5键长按操作")
             } else {
