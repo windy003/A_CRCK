@@ -58,6 +58,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         private const val TIKTOK_LITE_PACKAGE = "com.zhiliaoapp.musically.go"
         private const val DOUYIN_PACKAGE = "com.ss.android.ugc.aweme"
         private const val DOUYIN_LITE_PACKAGE = "com.ss.android.ugc.aweme.lite"
+        private const val TOUTIAO_PACKAGE = "com.ss.android.article.news"
         private const val BAIDU_DISK_PACKAGE = "com.baidu.netdisk"
 
         // 系统应用和桌面应用，不应该触发模式切换
@@ -329,8 +330,8 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                     }
                 }
             }
-            TIKTOK_PACKAGE, TIKTOK_LITE_PACKAGE, DOUYIN_PACKAGE, DOUYIN_LITE_PACKAGE -> {
-                Log.e(TAG, "匹配到TikTok/抖音应用")
+            TIKTOK_PACKAGE, TIKTOK_LITE_PACKAGE, DOUYIN_PACKAGE, DOUYIN_LITE_PACKAGE, TOUTIAO_PACKAGE -> {
+                Log.e(TAG, "匹配到TikTok/抖音/今日头条应用")
                 lastTargetAppMode = "tiktok"
                 lastTargetAppTime = System.currentTimeMillis()
                 if (isDoubleClickMappingEnabled || isTvModeEnabled || isBaiduModeEnabled || !isTiktokModeEnabled) {
@@ -504,6 +505,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             TIKTOK_LITE_PACKAGE,       // TikTok Lite
             DOUYIN_PACKAGE,            // 抖音
             DOUYIN_LITE_PACKAGE,       // 抖音 Lite
+            TOUTIAO_PACKAGE,           // 今日头条
             BAIDU_DISK_PACKAGE         // 百度网盘
         )
 
@@ -520,9 +522,10 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             Log.i(TAG, "检测到YouTube相关应用: $currentForegroundApp")
             true
         } else if (currentForegroundApp.startsWith("com.zhiliaoapp.musically") ||
-                   currentForegroundApp.startsWith("com.ss.android.ugc.aweme")) {
-            // TikTok/抖音相关的所有包
-            Log.i(TAG, "检测到TikTok/抖音相关应用: $currentForegroundApp")
+                   currentForegroundApp.startsWith("com.ss.android.ugc.aweme") ||
+                   currentForegroundApp.startsWith("com.ss.android.article.news")) {
+            // TikTok/抖音/今日头条相关的所有包
+            Log.i(TAG, "检测到TikTok/抖音/今日头条相关应用: $currentForegroundApp")
             true
         } else if (currentForegroundApp.startsWith("com.baidu.netdisk")) {
             // 百度网盘相关的所有包
