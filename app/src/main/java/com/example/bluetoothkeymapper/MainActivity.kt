@@ -746,7 +746,7 @@ class MainActivity : AppCompatActivity() {
 
             Toast.makeText(
                 this,
-                if (isChecked) "TikTok/抖音模式已开启" else "TikTok/抖音模式已关闭",
+                if (isChecked) "TikTok/抖音/今日头条模式已开启" else "TikTok/抖音/今日头条模式已关闭",
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -754,9 +754,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateTiktokModeStatus(enabled: Boolean) {
         binding.tvTiktokModeStatus.text = if (enabled) {
-            "TikTok/抖音模式已开启 - 左右键滑动，上下键已禁用，Home键重置进度条，OK键播放/暂停"
+            "TikTok/抖音/今日头条模式已开启 - 左右键滑动，上下键已禁用，Home键重置进度条，OK键播放/暂停"
         } else {
-            "TikTok/抖音模式已关闭"
+            "TikTok/抖音/今日头条模式已关闭"
         }
 
         binding.tvTiktokModeStatus.setTextColor(

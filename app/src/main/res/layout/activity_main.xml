@@ -230,7 +230,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="TikTok/抖音模式"
+            android:text="TikTok/抖音/今日头条模式"
             android:textSize="16sp" />
 
         <Switch
@@ -245,7 +245,7 @@
         android:id="@+id/tvTiktokModeStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="TikTok/抖音模式已关闭"
+        android:text="TikTok/抖音/今日头条模式已关闭"
         android:textSize="14sp"
         android:textColor="@android:color/holo_red_dark"
         android:layout_marginBottom="16dp" />
@@ -254,7 +254,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="TikTok/抖音视频时长设置"
+        android:text="TikTok/抖音/今日头条视频时长设置"
         android:textSize="18sp"
         android:textStyle="bold"
         android:layout_marginBottom="16dp" />
@@ -328,7 +328,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="使用说明：\n抖音/tiktok模式,最大滑动2分15秒,不然没有反应\n1. 确保蓝牙已启用并配对遥控器\n2. 授予所需权限\n3. 在设置中启用无障碍服务\n4. 启动服务\n5. 按遥控器OK键映射为媒体播放/暂停\n6. YouTube模式：dpad left双击屏幕后退5秒，home键竖屏点击(1029,649)，menu键横屏返回\n7. 百度网盘模式：OK键播放/暂停，左右键上一曲/下一曲\n8. 电视模式：使用16:9全屏坐标\n9. TikTok/抖音模式：输入视频分钟和秒数后自动计算滑动像素，左右键控制进度（横屏幕1080px分块），上下键已禁用，Home键重置进度条，OK键播放/暂停"
+        android:text="使用说明：\n抖音/tiktok/今日头条模式,最大滑动2分15秒,不然没有反应\n1. 确保蓝牙已启用并配对遥控器\n2. 授予所需权限\n3. 在设置中启用无障碍服务\n4. 启动服务\n5. 按遥控器OK键映射为媒体播放/暂停\n6. YouTube模式：dpad left双击屏幕后退5秒，home键竖屏点击(1029,649)，menu键横屏返回\n7. 百度网盘模式：OK键播放/暂停，左右键上一曲/下一曲\n8. 电视模式：使用16:9全屏坐标\n9. TikTok/抖音/今日头条模式：输入视频分钟和秒数后自动计算滑动像素，左右键控制进度（横屏幕1080px分块），上下键已禁用，Home键重置进度条，OK键播放/暂停"
         android:textSize="14sp"
         android:layout_marginTop="16dp"
         android:background="@android:color/background_light"
