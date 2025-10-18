@@ -276,18 +276,6 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun sendModeChangeBroadcast(action: String, enabled: Boolean) {
-        try {
-            val intent = Intent(action)
-            intent.putExtra("enabled", enabled)
-            intent.setPackage(packageName)
-            sendBroadcast(intent)
-            Log.e(TAG, "📡 发送广播成功: ${action.substringAfterLast(".")} = $enabled")
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ 发送广播失败: ${e.message}")
-        }
-    }
-
     private fun checkAndSwitchModeByApp(packageName: String) {
         if (!isAutoModeEnabled) return
 
@@ -389,12 +377,6 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 val success = editor.commit() // 使用commit确保立即保存
                 Log.e(TAG, "SharedPreferences保存结果: $success")
 
-                Log.e(TAG, "发送广播...")
-                sendModeChangeBroadcast("com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED", true)
-                sendModeChangeBroadcast("com.example.bluetoothkeymapper.TV_MODE_CHANGED", false)
-                sendModeChangeBroadcast("com.example.bluetoothkeymapper.BAIDU_MODE_CHANGED", false)
-                sendModeChangeBroadcast("com.example.bluetoothkeymapper.TIKTOK_MODE_CHANGED", false)
-
                 Log.e(TAG, "✅ 已成功切换到YouTube模式")
             }
             "tv" -> {
@@ -410,11 +392,6 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                     .putBoolean(PREF_TIKTOK_MODE_ENABLED, false)
                     .apply()
 
-                sendModeChangeBroadcast("com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED", false)
-                sendModeChangeBroadcast("com.example.bluetoothkeymapper.TV_MODE_CHANGED", true)
-                sendModeChangeBroadcast("com.example.bluetoothkeymapper.BAIDU_MODE_CHANGED", false)
-                sendModeChangeBroadcast("com.example.bluetoothkeymapper.TIKTOK_MODE_CHANGED", false)
-
                 Log.d(TAG, "已自动切换到电视模式")
             }
             "baidu" -> {
@@ -429,11 +406,6 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                     .putBoolean(PREF_BAIDU_MODE_ENABLED, true)
                     .putBoolean(PREF_TIKTOK_MODE_ENABLED, false)
                     .apply()
-
-                sendModeChangeBroadcast("com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED", false)
-                sendModeChangeBroadcast("com.example.bluetoothkeymapper.TV_MODE_CHANGED", false)
-                sendModeChangeBroadcast("com.example.bluetoothkeymapper.BAIDU_MODE_CHANGED", true)
-                sendModeChangeBroadcast("com.example.bluetoothkeymapper.TIKTOK_MODE_CHANGED", false)
 
                 Log.d(TAG, "已自动切换到百度网盘模式")
             }
@@ -452,12 +424,6 @@ class KeyMapperAccessibilityService : AccessibilityService() {
 
                 val success = editor.commit() // 使用commit确保立即保存
                 Log.e(TAG, "SharedPreferences保存结果: $success")
-
-                Log.e(TAG, "发送广播...")
-                sendModeChangeBroadcast("com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED", false)
-                sendModeChangeBroadcast("com.example.bluetoothkeymapper.TV_MODE_CHANGED", false)
-                sendModeChangeBroadcast("com.example.bluetoothkeymapper.BAIDU_MODE_CHANGED", false)
-                sendModeChangeBroadcast("com.example.bluetoothkeymapper.TIKTOK_MODE_CHANGED", true)
 
                 Log.e(TAG, "✅ 已成功切换到TikTok模式")
             }
@@ -1144,20 +1110,6 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         
         // 使用Android系统通知样式的日志
         android.util.Log.wtf(TAG, "🔧 双击映射功能已$status")
-        
-        // 通知所有监听器状态变化
-        notifyYoutubeModeChanged(enabled)
-    }
-    
-    private fun notifyYoutubeModeChanged(enabled: Boolean) {
-        try {
-            val intent = Intent("com.example.bluetoothkeymapper.YOUTUBE_MODE_CHANGED")
-            intent.putExtra("enabled", enabled)
-            sendBroadcast(intent)
-            Log.d(TAG, "已发送YouTube模式状态变化广播: $enabled")
-        } catch (e: Exception) {
-            Log.e(TAG, "发送状态变化广播失败: ${e.message}")
-        }
     }
     
     fun isDoubleClickMappingEnabled(): Boolean {
@@ -1175,20 +1127,6 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         
         // 使用Android系统通知样式的日志
         android.util.Log.wtf(TAG, "📺 电视模式功能已$status")
-        
-        // 通知所有监听器状态变化
-        notifyTvModeChanged(enabled)
-    }
-    
-    private fun notifyTvModeChanged(enabled: Boolean) {
-        try {
-            val intent = Intent("com.example.bluetoothkeymapper.TV_MODE_CHANGED")
-            intent.putExtra("enabled", enabled)
-            sendBroadcast(intent)
-            Log.d(TAG, "已发送电视模式状态变化广播: $enabled")
-        } catch (e: Exception) {
-            Log.e(TAG, "发送电视模式状态变化广播失败: ${e.message}")
-        }
     }
     
     fun isTvModeEnabled(): Boolean {
@@ -1207,20 +1145,6 @@ class KeyMapperAccessibilityService : AccessibilityService() {
 
         // 使用Android系统通知样式的日志
         android.util.Log.wtf(TAG, "🎵 百度网盘模式功能已$status")
-
-        // 通知所有监听器状态变化
-        notifyBaiduModeChanged(enabled)
-    }
-
-    private fun notifyBaiduModeChanged(enabled: Boolean) {
-        try {
-            val intent = Intent("com.example.bluetoothkeymapper.BAIDU_MODE_CHANGED")
-            intent.putExtra("enabled", enabled)
-            sendBroadcast(intent)
-            Log.d(TAG, "已发送百度网盘模式状态变化广播: $enabled")
-        } catch (e: Exception) {
-            Log.e(TAG, "发送百度网盘模式状态变化广播失败: ${e.message}")
-        }
     }
 
     fun isBaiduModeEnabled(): Boolean {
@@ -1243,9 +1167,6 @@ class KeyMapperAccessibilityService : AccessibilityService() {
 
         // 使用Android系统通知样式的日志
         android.util.Log.wtf(TAG, "🎵 TikTok模式功能已$status")
-
-        // 通知所有监听器状态变化
-        notifyTiktokModeChanged(enabled)
     }
 
     fun setAutoModeEnabled(enabled: Boolean) {
@@ -1259,17 +1180,6 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         lastTargetAppMode = ""
         lastTargetAppTime = 0L
         Log.e(TAG, "已清除上次目标应用模式记录")
-    }
-
-    private fun notifyTiktokModeChanged(enabled: Boolean) {
-        try {
-            val intent = Intent("com.example.bluetoothkeymapper.TIKTOK_MODE_CHANGED")
-            intent.putExtra("enabled", enabled)
-            sendBroadcast(intent)
-            Log.d(TAG, "已发送TikTok模式状态变化广播: $enabled")
-        } catch (e: Exception) {
-            Log.e(TAG, "发送TikTok模式状态变化广播失败: ${e.message}")
-        }
     }
 
     fun isTiktokModeEnabled(): Boolean {
