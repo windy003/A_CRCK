@@ -19,6 +19,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     private var isTvModeEnabled = false // 电视模式开关，默认关闭
     private var isBaiduModeEnabled = false // 百度网盘模式开关，默认关闭
     private var isTiktokModeEnabled = false // TikTok模式开关，默认关闭
+    private var isBilibiliModeEnabled = false // 哔哩哔哩模式开关，默认关闭
     private var lastMediaPlayPauseTime = 0L // 上次播放/暂停按键时间戳
     private var screenWidth = 0 // 屏幕宽度
     private var screenHeight = 0 // 屏幕高度
@@ -50,6 +51,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         private const val PREF_TV_MODE_ENABLED = "tv_mode_enabled"
         private const val PREF_BAIDU_MODE_ENABLED = "baidu_mode_enabled"
         private const val PREF_TIKTOK_MODE_ENABLED = "tiktok_mode_enabled"
+        private const val PREF_BILIBILI_MODE_ENABLED = "bilibili_mode_enabled"
 
         // 应用包名映射
         private const val YOUTUBE_PACKAGE = "com.google.android.youtube"
@@ -60,6 +62,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         private const val DOUYIN_LITE_PACKAGE = "com.ss.android.ugc.aweme.lite"
         private const val TOUTIAO_PACKAGE = "com.ss.android.article.news"
         private const val BAIDU_DISK_PACKAGE = "com.baidu.netdisk"
+        private const val BILIBILI_PACKAGE = "tv.danmaku.bili"
 
         // 系统应用和桌面应用，不应该触发模式切换
         private val SYSTEM_PACKAGES = setOf(
@@ -92,6 +95,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         isTvModeEnabled = sharedPreferences.getBoolean(PREF_TV_MODE_ENABLED, false)
         isBaiduModeEnabled = sharedPreferences.getBoolean(PREF_BAIDU_MODE_ENABLED, false)
         isTiktokModeEnabled = sharedPreferences.getBoolean(PREF_TIKTOK_MODE_ENABLED, false)
+        isBilibiliModeEnabled = sharedPreferences.getBoolean(PREF_BILIBILI_MODE_ENABLED, false)
         isAutoModeEnabled = sharedPreferences.getBoolean("auto_mode_enabled", true)
 
         // 初始化音量状态
@@ -106,6 +110,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         Log.d(TAG, "电视模式初始状态: ${if (isTvModeEnabled) "开启" else "关闭"}")
         Log.d(TAG, "百度网盘模式初始状态: ${if (isBaiduModeEnabled) "开启" else "关闭"}")
         Log.d(TAG, "TikTok模式初始状态: ${if (isTiktokModeEnabled) "开启" else "关闭"}")
+        Log.d(TAG, "哔哩哔哩模式初始状态: ${if (isBilibiliModeEnabled) "开启" else "关闭"}")
     }
     
     override fun onServiceConnected() {
@@ -218,14 +223,20 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                         return
                     }
                 }
+                "bilibili" -> {
+                    if (isBilibiliModeEnabled) {
+                        Log.e(TAG, "保持哔哩哔哩模式，因为用户刚刚使用了哔哩哔哩")
+                        return
+                    }
+                }
                 "youtube" -> {
-                    if (isDoubleClickMappingEnabled && !isTvModeEnabled && !isBaiduModeEnabled && !isTiktokModeEnabled) {
+                    if (isDoubleClickMappingEnabled && !isTvModeEnabled && !isBaiduModeEnabled && !isTiktokModeEnabled && !isBilibiliModeEnabled) {
                         Log.e(TAG, "保持YouTube模式，因为用户刚刚使用了YouTube")
                         return
                     }
                 }
                 "tv" -> {
-                    if (!isDoubleClickMappingEnabled && isTvModeEnabled && !isBaiduModeEnabled && !isTiktokModeEnabled) {
+                    if (!isDoubleClickMappingEnabled && isTvModeEnabled && !isBaiduModeEnabled && !isTiktokModeEnabled && !isBilibiliModeEnabled) {
                         Log.e(TAG, "保持电视模式，因为用户刚刚使用了YouTube(16:9)")
                         return
                     }
@@ -251,7 +262,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             aspectRatio >= 2.1f -> {
                 // 20:9屏幕 - 只有在没有任何模式时才切换到默认YouTube模式
                 Log.e(TAG, "检测到20:9屏幕，考虑切换到默认YouTube模式")
-                if (!isDoubleClickMappingEnabled && !isTvModeEnabled && !isBaiduModeEnabled && !isTiktokModeEnabled) {
+                if (!isDoubleClickMappingEnabled && !isTvModeEnabled && !isBaiduModeEnabled && !isTiktokModeEnabled && !isBilibiliModeEnabled) {
                     Log.e(TAG, "切换到默认YouTube模式")
                     switchToMode("youtube")
                     // 不设置lastTargetAppMode，因为这是屏幕比例的默认选择
@@ -262,7 +273,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             aspectRatio >= 1.6f && aspectRatio < 2.0f -> {
                 // 16:9屏幕 - 只有在没有任何模式时才切换到默认电视模式
                 Log.e(TAG, "检测到16:9屏幕，考虑切换到默认电视模式")
-                if (!isDoubleClickMappingEnabled && !isTvModeEnabled && !isBaiduModeEnabled && !isTiktokModeEnabled) {
+                if (!isDoubleClickMappingEnabled && !isTvModeEnabled && !isBaiduModeEnabled && !isTiktokModeEnabled && !isBilibiliModeEnabled) {
                     Log.e(TAG, "切换到默认电视模式")
                     switchToMode("tv")
                     // 不设置lastTargetAppMode，因为这是屏幕比例的默认选择
@@ -281,7 +292,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
 
         Log.e(TAG, "=== 应用模式检查 ===")
         Log.e(TAG, "包名: $packageName")
-        Log.e(TAG, "当前状态 - YouTube:$isDoubleClickMappingEnabled, TV:$isTvModeEnabled, Baidu:$isBaiduModeEnabled, TikTok:$isTiktokModeEnabled")
+        Log.e(TAG, "当前状态 - YouTube:$isDoubleClickMappingEnabled, TV:$isTvModeEnabled, Baidu:$isBaiduModeEnabled, TikTok:$isTiktokModeEnabled, Bilibili:$isBilibiliModeEnabled")
 
         when (packageName) {
             YOUTUBE_PACKAGE, YOUTUBE_MUSIC_PACKAGE -> {
@@ -299,7 +310,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                     Log.e(TAG, "16:9屏幕上的YouTube，切换到电视模式")
                     lastTargetAppMode = "tv"
                     lastTargetAppTime = System.currentTimeMillis()
-                    if (isDoubleClickMappingEnabled || !isTvModeEnabled || isBaiduModeEnabled || isTiktokModeEnabled) {
+                    if (isDoubleClickMappingEnabled || !isTvModeEnabled || isBaiduModeEnabled || isTiktokModeEnabled || isBilibiliModeEnabled) {
                         Log.e(TAG, "需要切换到电视模式")
                         switchToMode("tv")
                     } else {
@@ -310,7 +321,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                     Log.e(TAG, "20:9屏幕上的YouTube，切换到YouTube模式")
                     lastTargetAppMode = "youtube"
                     lastTargetAppTime = System.currentTimeMillis()
-                    if (!isDoubleClickMappingEnabled || isTvModeEnabled || isBaiduModeEnabled || isTiktokModeEnabled) {
+                    if (!isDoubleClickMappingEnabled || isTvModeEnabled || isBaiduModeEnabled || isTiktokModeEnabled || isBilibiliModeEnabled) {
                         Log.e(TAG, "需要切换到YouTube模式")
                         switchToMode("youtube")
                     } else {
@@ -322,7 +333,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 Log.e(TAG, "匹配到TikTok/抖音/今日头条应用")
                 lastTargetAppMode = "tiktok"
                 lastTargetAppTime = System.currentTimeMillis()
-                if (isDoubleClickMappingEnabled || isTvModeEnabled || isBaiduModeEnabled || !isTiktokModeEnabled) {
+                if (isDoubleClickMappingEnabled || isTvModeEnabled || isBaiduModeEnabled || !isTiktokModeEnabled || isBilibiliModeEnabled) {
                     Log.e(TAG, "需要切换到TikTok模式")
                     switchToMode("tiktok")
                 } else {
@@ -333,11 +344,22 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 Log.e(TAG, "匹配到百度网盘应用")
                 lastTargetAppMode = "baidu"
                 lastTargetAppTime = System.currentTimeMillis()
-                if (isDoubleClickMappingEnabled || isTvModeEnabled || !isBaiduModeEnabled || isTiktokModeEnabled) {
+                if (isDoubleClickMappingEnabled || isTvModeEnabled || !isBaiduModeEnabled || isTiktokModeEnabled || isBilibiliModeEnabled) {
                     Log.e(TAG, "需要切换到百度网盘模式")
                     switchToMode("baidu")
                 } else {
                     Log.e(TAG, "已经是百度网盘模式，无需切换")
+                }
+            }
+            BILIBILI_PACKAGE -> {
+                Log.e(TAG, "匹配到哔哩哔哩应用")
+                lastTargetAppMode = "bilibili"
+                lastTargetAppTime = System.currentTimeMillis()
+                if (isDoubleClickMappingEnabled || isTvModeEnabled || isBaiduModeEnabled || isTiktokModeEnabled || !isBilibiliModeEnabled) {
+                    Log.e(TAG, "需要切换到哔哩哔哩模式")
+                    switchToMode("bilibili")
+                } else {
+                    Log.e(TAG, "已经是哔哩哔哩模式，无需切换")
                 }
             }
             else -> {
@@ -367,12 +389,14 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 isTvModeEnabled = false
                 isBaiduModeEnabled = false
                 isTiktokModeEnabled = false
+                isBilibiliModeEnabled = false
 
                 val editor = sharedPreferences.edit()
                     .putBoolean(PREF_YOUTUBE_MODE_ENABLED, true)
                     .putBoolean(PREF_TV_MODE_ENABLED, false)
                     .putBoolean(PREF_BAIDU_MODE_ENABLED, false)
                     .putBoolean(PREF_TIKTOK_MODE_ENABLED, false)
+                    .putBoolean(PREF_BILIBILI_MODE_ENABLED, false)
 
                 val success = editor.commit() // 使用commit确保立即保存
                 Log.e(TAG, "SharedPreferences保存结果: $success")
@@ -384,12 +408,14 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 isTvModeEnabled = true
                 isBaiduModeEnabled = false
                 isTiktokModeEnabled = false
+                isBilibiliModeEnabled = false
 
                 sharedPreferences.edit()
                     .putBoolean(PREF_YOUTUBE_MODE_ENABLED, false)
                     .putBoolean(PREF_TV_MODE_ENABLED, true)
                     .putBoolean(PREF_BAIDU_MODE_ENABLED, false)
                     .putBoolean(PREF_TIKTOK_MODE_ENABLED, false)
+                    .putBoolean(PREF_BILIBILI_MODE_ENABLED, false)
                     .apply()
 
                 Log.d(TAG, "已自动切换到电视模式")
@@ -399,12 +425,14 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 isTvModeEnabled = false
                 isBaiduModeEnabled = true
                 isTiktokModeEnabled = false
+                isBilibiliModeEnabled = false
 
                 sharedPreferences.edit()
                     .putBoolean(PREF_YOUTUBE_MODE_ENABLED, false)
                     .putBoolean(PREF_TV_MODE_ENABLED, false)
                     .putBoolean(PREF_BAIDU_MODE_ENABLED, true)
                     .putBoolean(PREF_TIKTOK_MODE_ENABLED, false)
+                    .putBoolean(PREF_BILIBILI_MODE_ENABLED, false)
                     .apply()
 
                 Log.d(TAG, "已自动切换到百度网盘模式")
@@ -415,17 +443,39 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 isTvModeEnabled = false
                 isBaiduModeEnabled = false
                 isTiktokModeEnabled = true
+                isBilibiliModeEnabled = false
 
                 val editor = sharedPreferences.edit()
                     .putBoolean(PREF_YOUTUBE_MODE_ENABLED, false)
                     .putBoolean(PREF_TV_MODE_ENABLED, false)
                     .putBoolean(PREF_BAIDU_MODE_ENABLED, false)
                     .putBoolean(PREF_TIKTOK_MODE_ENABLED, true)
+                    .putBoolean(PREF_BILIBILI_MODE_ENABLED, false)
 
                 val success = editor.commit() // 使用commit确保立即保存
                 Log.e(TAG, "SharedPreferences保存结果: $success")
 
                 Log.e(TAG, "✅ 已成功切换到TikTok模式")
+            }
+            "bilibili" -> {
+                Log.e(TAG, "切换到哔哩哔哩模式...")
+                isDoubleClickMappingEnabled = false
+                isTvModeEnabled = false
+                isBaiduModeEnabled = false
+                isTiktokModeEnabled = false
+                isBilibiliModeEnabled = true
+
+                val editor = sharedPreferences.edit()
+                    .putBoolean(PREF_YOUTUBE_MODE_ENABLED, false)
+                    .putBoolean(PREF_TV_MODE_ENABLED, false)
+                    .putBoolean(PREF_BAIDU_MODE_ENABLED, false)
+                    .putBoolean(PREF_TIKTOK_MODE_ENABLED, false)
+                    .putBoolean(PREF_BILIBILI_MODE_ENABLED, true)
+
+                val success = editor.commit() // 使用commit确保立即保存
+                Log.e(TAG, "SharedPreferences保存结果: $success")
+
+                Log.e(TAG, "✅ 已成功切换到哔哩哔哩模式")
             }
         }
         Log.e(TAG, "=== 模式切换完成 ===")
@@ -472,7 +522,8 @@ class KeyMapperAccessibilityService : AccessibilityService() {
             DOUYIN_PACKAGE,            // 抖音
             DOUYIN_LITE_PACKAGE,       // 抖音 Lite
             TOUTIAO_PACKAGE,           // 今日头条
-            BAIDU_DISK_PACKAGE         // 百度网盘
+            BAIDU_DISK_PACKAGE,        // 百度网盘
+            BILIBILI_PACKAGE           // 哔哩哔哩
         )
 
         // 检查是否为目标应用（支持包名前缀匹配和空值处理）
@@ -496,6 +547,10 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         } else if (currentForegroundApp.startsWith("com.baidu.netdisk")) {
             // 百度网盘相关的所有包
             Log.i(TAG, "检测到百度网盘相关应用: $currentForegroundApp")
+            true
+        } else if (currentForegroundApp.startsWith("tv.danmaku.bili")) {
+            // 哔哩哔哩相关的所有包
+            Log.i(TAG, "检测到哔哩哔哩相关应用: $currentForegroundApp")
             true
         } else {
             false
@@ -524,7 +579,19 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 Log.e(TAG, "!!! 检测到目标按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (isTiktokModeEnabled) {
+                    if (isBilibiliModeEnabled) {
+                        // 哔哩哔哩模式：只在横屏时执行双击屏幕中间
+                        val orientation = resources.configuration.orientation
+                        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+                        if (isLandscape) {
+                            Log.e(TAG, "哔哩哔哩模式横屏 - 执行屏幕中心双击操作")
+                            performBilibiliCenterDoubleClick()
+                            Log.e(TAG, "哔哩哔哩模式中心双击操作完成")
+                        } else {
+                            Log.e(TAG, "哔哩哔哩模式竖屏 - OK键功能已禁用")
+                        }
+                    } else if (isTiktokModeEnabled) {
                         Log.e(TAG, "TikTok模式 - 执行屏幕中心点击操作")
                         performTiktokCenterClick()
                         Log.e(TAG, "TikTok模式中心点击操作完成")
@@ -1169,6 +1236,26 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         android.util.Log.wtf(TAG, "🎵 TikTok模式功能已$status")
     }
 
+    fun setBilibiliModeEnabled(enabled: Boolean) {
+        isBilibiliModeEnabled = enabled
+        val status = if (isBilibiliModeEnabled) "开启" else "关闭"
+
+        Log.e(TAG, "=== 哔哩哔哩模式功能状态更新 ===")
+        Log.e(TAG, "当前状态: $status")
+        Log.e(TAG, "OK键映射（横屏）: ${if (isBilibiliModeEnabled) "屏幕中心双击" else "原有功能"}")
+        Log.e(TAG, "左方向键映射（横屏）: ${if (isBilibiliModeEnabled) "从中间向左滑动100px" else "原有功能"}")
+        Log.e(TAG, "右方向键映射（横屏）: ${if (isBilibiliModeEnabled) "从中间向右滑动100px" else "原有功能"}")
+        Log.e(TAG, "竖屏状态: ${if (isBilibiliModeEnabled) "所有按键禁用" else "原有功能"}")
+        Log.e(TAG, "===============================")
+
+        // 使用Android系统通知样式的日志
+        android.util.Log.wtf(TAG, "📺 哔哩哔哩模式功能已$status")
+    }
+
+    fun isBilibiliModeEnabled(): Boolean {
+        return isBilibiliModeEnabled
+    }
+
     fun setAutoModeEnabled(enabled: Boolean) {
         isAutoModeEnabled = enabled
         val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -1425,7 +1512,19 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     private fun handleDpadLeftShortPress() {
         Log.e(TAG, "左方向键短按 - 执行原有功能")
 
-        if (isTiktokModeEnabled) {
+        if (isBilibiliModeEnabled) {
+            // 哔哩哔哩模式：只在横屏时从中间向左滑动100像素
+            val orientation = resources.configuration.orientation
+            val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+            if (isLandscape) {
+                Log.e(TAG, "哔哩哔哩模式横屏 - 执行从中间向左滑动100px操作")
+                performBilibiliLeftSwipe()
+                Log.e(TAG, "哔哩哔哩模式左滑操作完成")
+            } else {
+                Log.e(TAG, "哔哩哔哩模式竖屏 - 左方向键功能已禁用")
+            }
+        } else if (isTiktokModeEnabled) {
             // TikTok模式：左滑操作
             Log.e(TAG, "TikTok模式 - 执行左滑操作")
             performTiktokLeftSwipe()
@@ -1468,7 +1567,19 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     private fun handleDpadRightShortPress() {
         Log.e(TAG, "右方向键短按 - 执行原有功能")
 
-        if (isTiktokModeEnabled) {
+        if (isBilibiliModeEnabled) {
+            // 哔哩哔哩模式：只在横屏时从中间向右滑动100像素
+            val orientation = resources.configuration.orientation
+            val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+            if (isLandscape) {
+                Log.e(TAG, "哔哩哔哩模式横屏 - 执行从中间向右滑动100px操作")
+                performBilibiliRightSwipe()
+                Log.e(TAG, "哔哩哔哩模式右滑操作完成")
+            } else {
+                Log.e(TAG, "哔哩哔哩模式竖屏 - 右方向键功能已禁用")
+            }
+        } else if (isTiktokModeEnabled) {
             // TikTok模式：右滑操作
             Log.e(TAG, "TikTok模式 - 执行右滑操作")
             performTiktokRightSwipe()
@@ -1513,6 +1624,65 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         Log.e(TAG, "右方向键长按1秒触发 - 播放下一个")
         sendMediaNext()
         Log.e(TAG, "右方向键长按 - 下一个播放操作完成")
+    }
+
+    // 哔哩哔哩模式：屏幕中心双击
+    private fun performBilibiliCenterDoubleClick() {
+        val centerX = screenWidth / 2f
+        val centerY = screenHeight / 2f
+
+        Log.d(TAG, "哔哩哔哩模式 - 执行屏幕中心双击: 位置(${centerX},${centerY})")
+        performDoubleClick(centerX, centerY)
+    }
+
+    // 哔哩哔哩模式：从中间向左滑动100像素
+    private fun performBilibiliLeftSwipe() {
+        val centerX = screenWidth / 2f
+        val centerY = screenHeight / 2f
+        val swipeDistance = 100f
+
+        val path = Path().apply {
+            moveTo(centerX, centerY)
+            lineTo(centerX - swipeDistance, centerY)  // 向左滑动100px
+        }
+
+        performBilibiliSwipeGesture(path)
+        Log.d(TAG, "哔哩哔哩模式 - 从中间(${centerX},${centerY})向左滑动${swipeDistance}px")
+    }
+
+    // 哔哩哔哩模式：从中间向右滑动100像素
+    private fun performBilibiliRightSwipe() {
+        val centerX = screenWidth / 2f
+        val centerY = screenHeight / 2f
+        val swipeDistance = 100f
+
+        val path = Path().apply {
+            moveTo(centerX, centerY)
+            lineTo(centerX + swipeDistance, centerY)  // 向右滑动100px
+        }
+
+        performBilibiliSwipeGesture(path)
+        Log.d(TAG, "哔哩哔哩模式 - 从中间(${centerX},${centerY})向右滑动${swipeDistance}px")
+    }
+
+    // 哔哩哔哩模式：执行滑动手势
+    private fun performBilibiliSwipeGesture(path: Path) {
+        val gestureBuilder = GestureDescription.Builder()
+        val strokeDescription = GestureDescription.StrokeDescription(path, 0, 300L)
+        gestureBuilder.addStroke(strokeDescription)
+
+        val gesture = gestureBuilder.build()
+        dispatchGesture(gesture, object : GestureResultCallback() {
+            override fun onCompleted(gestureDescription: GestureDescription?) {
+                super.onCompleted(gestureDescription)
+                Log.d(TAG, "哔哩哔哩模式手势执行完成")
+            }
+
+            override fun onCancelled(gestureDescription: GestureDescription?) {
+                super.onCancelled(gestureDescription)
+                Log.d(TAG, "哔哩哔哩模式手势执行被取消")
+            }
+        }, null)
     }
 
     override fun onDestroy() {
