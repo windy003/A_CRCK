@@ -650,7 +650,19 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 Log.e(TAG, "!!! 检测到dpad down按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (isTiktokModeEnabled) {
+                    if (isBilibiliModeEnabled) {
+                        // 哔哩哔哩模式：只在横屏时执行单击屏幕中心
+                        val orientation = resources.configuration.orientation
+                        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+                        if (isLandscape) {
+                            Log.e(TAG, "哔哩哔哩模式横屏 - 执行屏幕中心单击操作")
+                            performBilibiliCenterClick()
+                            Log.e(TAG, "哔哩哔哩模式中心单击操作完成")
+                        } else {
+                            Log.e(TAG, "哔哩哔哩模式竖屏 - 下方向键功能已禁用")
+                        }
+                    } else if (isTiktokModeEnabled) {
                         // TikTok模式：禁用下方向键功能
                         Log.e(TAG, "TikTok模式 - 下方向键功能已禁用")
                         return true // 拦截事件但不执行任何操作
@@ -698,7 +710,19 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 Log.e(TAG, "!!! 检测到返回按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (isTvModeEnabled) {
+                    if (isBilibiliModeEnabled) {
+                        // 哔哩哔哩模式：只在横屏时执行单击屏幕中心
+                        val orientation = resources.configuration.orientation
+                        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+                        if (isLandscape) {
+                            Log.e(TAG, "哔哩哔哩模式横屏 - 执行屏幕中心单击操作")
+                            performBilibiliCenterClick()
+                            Log.e(TAG, "哔哩哔哩模式返回键中心单击操作完成")
+                        } else {
+                            Log.e(TAG, "哔哩哔哩模式竖屏 - 返回键功能已禁用")
+                        }
+                    } else if (isTvModeEnabled) {
                         // 电视模式：执行单击屏幕坐标(1580,407)
                         Log.e(TAG, "电视模式 - 执行单击屏幕坐标(1580,407)操作")
                         performSingleClick(1580f, 407f)
@@ -731,43 +755,59 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 Log.e(TAG, "!!! 检测到Move Home按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (isTiktokModeEnabled) {
+                    if (isBilibiliModeEnabled) {
+                        // 哔哩哔哩模式：根据屏幕方向处理
+                        val orientation = resources.configuration.orientation
+                        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+                        if (isLandscape) {
+                            // 横屏时：映射为返回键
+                            Log.e(TAG, "哔哩哔哩模式横屏 - Home键映射为返回键功能")
+                            sendBackKey()
+                            Log.e(TAG, "哔哩哔哩模式横屏Home键返回键操作完成")
+                        } else {
+                            // 竖屏时：点击坐标(1024,632)
+                            Log.e(TAG, "哔哩哔哩模式竖屏 - 执行单击屏幕坐标(1024,632)操作")
+                            performSingleClick(1024f, 632f)
+                            Log.e(TAG, "哔哩哔哩模式竖屏Home键单击操作完成")
+                        }
+                    } else if (isTiktokModeEnabled) {
                         // TikTok模式：返回进度条到起始位置
                         Log.e(TAG, "TikTok模式 - 执行进度条重置操作")
                         performTiktokSeekToStart()
                         Log.e(TAG, "TikTok模式进度条重置操作完成")
                         return true
                     } else if (isTvModeEnabled) {
-                        // 电视模式：根据屏幕方向处理
+                        // 电视模式(16:9)：根据屏幕方向处理
                         val orientation = resources.configuration.orientation
                         val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
 
                         if (isLandscape) {
-                            // 横屏时：点击坐标(1840,833)
-                            Log.e(TAG, "电视模式横屏 - 执行单击屏幕坐标(1840,833)操作")
-                            performSingleClick(1840f, 833f)
-                            Log.e(TAG, "电视模式横屏Home键单击操作完成")
+                            // 横屏时：映射为返回键
+                            Log.e(TAG, "电视模式横屏 - Home键映射为返回键功能")
+                            sendBackKey()
+                            Log.e(TAG, "电视模式横屏Home键返回键操作完成")
                         } else {
-                            // 竖屏时：执行相应的点击
-                            Log.e(TAG, "电视模式竖屏 - 执行单击屏幕坐标(995,634)操作")
-                            performSingleClick(995f, 634f)
-                            Log.e(TAG, "电视模式竖屏单击操作完成")
+                            // 竖屏时：点击坐标(1024,637)
+                            Log.e(TAG, "电视模式竖屏 - 执行单击屏幕坐标(1024,637)操作")
+                            performSingleClick(1024f, 637f)
+                            Log.e(TAG, "电视模式竖屏Home键单击操作完成")
                         }
                     } else if (isDoubleClickMappingEnabled) {
-                        // YouTube模式：根据屏幕方向处理
+                        // YouTube模式(20.5:9)：根据屏幕方向处理
                         val orientation = resources.configuration.orientation
                         val isPortrait = orientation == Configuration.ORIENTATION_PORTRAIT
 
                         if (isPortrait) {
-                            // 竖屏时：执行相应的点击
-                            Log.e(TAG, "YouTube模式竖屏 - 执行单击屏幕坐标(1050,620)操作")
-                            performSingleClick(1050f, 620f)
-                            Log.e(TAG, "YouTube模式竖屏单击操作完成")
+                            // 竖屏时：点击坐标(1034,632)
+                            Log.e(TAG, "YouTube模式竖屏 - 执行单击屏幕坐标(1034,632)操作")
+                            performSingleClick(1034f, 632f)
+                            Log.e(TAG, "YouTube模式竖屏Home键单击操作完成")
                         } else {
                             // 横屏时：映射为返回键
                             Log.e(TAG, "YouTube模式横屏 - Home键映射为返回键功能")
                             sendBackKey()
-                            Log.e(TAG, "YouTube模式横屏返回键操作完成")
+                            Log.e(TAG, "YouTube模式横屏Home键返回键操作完成")
                         }
                     } else {
                         // 非YouTube模式：执行上一曲操作
@@ -1633,6 +1673,15 @@ class KeyMapperAccessibilityService : AccessibilityService() {
 
         Log.d(TAG, "哔哩哔哩模式 - 执行屏幕中心双击: 位置(${centerX},${centerY})")
         performDoubleClick(centerX, centerY)
+    }
+
+    // 哔哩哔哩模式：屏幕中心单击
+    private fun performBilibiliCenterClick() {
+        val centerX = screenWidth / 2f
+        val centerY = screenHeight / 2f
+
+        Log.d(TAG, "哔哩哔哩模式 - 执行屏幕中心单击: 位置(${centerX},${centerY})")
+        performSingleClick(centerX, centerY)
     }
 
     // 哔哩哔哩模式：从中间向左滑动100像素
