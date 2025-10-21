@@ -824,7 +824,21 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 Log.e(TAG, "!!! 检测到Menu按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (isTvModeEnabled) {
+                    if (isBilibiliModeEnabled) {
+                        // 哔哩哔哩模式：根据屏幕方向处理
+                        val orientation = resources.configuration.orientation
+                        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+                        if (isLandscape) {
+                            // 横屏时：从右到左滑动，回到视频开头
+                            Log.e(TAG, "哔哩哔哩模式横屏 - 执行从右到左长滑动操作（回到开头）")
+                            performBilibiliSeekToStart()
+                            Log.e(TAG, "哔哩哔哩模式横屏Menu键操作完成")
+                        } else {
+                            // 竖屏时：禁用
+                            Log.e(TAG, "哔哩哔哩模式竖屏 - Menu键功能已禁用")
+                        }
+                    } else if (isTvModeEnabled) {
                         // 电视模式：根据屏幕方向处理
                         val orientation = resources.configuration.orientation
                         val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -1732,6 +1746,37 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 Log.d(TAG, "哔哩哔哩模式手势执行被取消")
             }
         }, null)
+    }
+
+    // 哔哩哔哩模式：从右到左长滑动，回到视频开头
+    private fun performBilibiliSeekToStart() {
+        val centerY = screenHeight / 2f
+        val startX = screenWidth * 4f / 5f  // 从屏幕x轴的4/5处开始
+        val endX = 0f  // 滑到最左边
+
+        val path = Path().apply {
+            moveTo(startX, centerY)
+            lineTo(endX, centerY)
+        }
+
+        val gestureBuilder = GestureDescription.Builder()
+        val strokeDescription = GestureDescription.StrokeDescription(path, 0, 500L)  // 500ms完成滑动
+        gestureBuilder.addStroke(strokeDescription)
+
+        val gesture = gestureBuilder.build()
+        dispatchGesture(gesture, object : GestureResultCallback() {
+            override fun onCompleted(gestureDescription: GestureDescription?) {
+                super.onCompleted(gestureDescription)
+                Log.d(TAG, "哔哩哔哩模式 - 从右到左长滑动完成，Y坐标:$centerY")
+            }
+
+            override fun onCancelled(gestureDescription: GestureDescription?) {
+                super.onCancelled(gestureDescription)
+                Log.d(TAG, "哔哩哔哩模式 - 从右到左长滑动被取消")
+            }
+        }, null)
+
+        Log.d(TAG, "哔哩哔哩模式 - 执行从x轴4/5处($startX)到左($endX)的长滑动，Y坐标:$centerY")
     }
 
     override fun onDestroy() {
