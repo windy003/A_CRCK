@@ -589,7 +589,9 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                             performBilibiliCenterDoubleClick()
                             Log.e(TAG, "哔哩哔哩模式中心双击操作完成")
                         } else {
-                            Log.e(TAG, "哔哩哔哩模式竖屏 - OK键功能已禁用")
+                            Log.e(TAG, "哔哩哔哩模式竖屏 - 执行媒体播放/暂停操作")
+                            sendMediaPlayPause()
+                            Log.e(TAG, "哔哩哔哩模式媒体播放/暂停操作完成")
                         }
                     } else if (isTiktokModeEnabled) {
                         Log.e(TAG, "TikTok模式 - 执行屏幕中心点击操作")
@@ -1567,7 +1569,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         Log.e(TAG, "左方向键短按 - 执行原有功能")
 
         if (isBilibiliModeEnabled) {
-            // 哔哩哔哩模式：只在横屏时从中间向左滑动100像素
+            // 哔哩哔哩模式：横屏从中间向左滑动100像素，竖屏从(514,405)向左滑动100像素
             val orientation = resources.configuration.orientation
             val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -1576,7 +1578,9 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 performBilibiliLeftSwipe()
                 Log.e(TAG, "哔哩哔哩模式左滑操作完成")
             } else {
-                Log.e(TAG, "哔哩哔哩模式竖屏 - 左方向键功能已禁用")
+                Log.e(TAG, "哔哩哔哩模式竖屏 - 执行从(514,405)向左滑动100px操作")
+                performBilibiliPortraitLeftSwipe()
+                Log.e(TAG, "哔哩哔哩模式竖屏左滑操作完成")
             }
         } else if (isTiktokModeEnabled) {
             // TikTok模式：左滑操作
@@ -1622,7 +1626,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         Log.e(TAG, "右方向键短按 - 执行原有功能")
 
         if (isBilibiliModeEnabled) {
-            // 哔哩哔哩模式：只在横屏时从中间向右滑动100像素
+            // 哔哩哔哩模式：横屏从中间向右滑动100像素，竖屏从(514,405)向右滑动100像素
             val orientation = resources.configuration.orientation
             val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -1631,7 +1635,9 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 performBilibiliRightSwipe()
                 Log.e(TAG, "哔哩哔哩模式右滑操作完成")
             } else {
-                Log.e(TAG, "哔哩哔哩模式竖屏 - 右方向键功能已禁用")
+                Log.e(TAG, "哔哩哔哩模式竖屏 - 执行从(514,405)向右滑动100px操作")
+                performBilibiliPortraitRightSwipe()
+                Log.e(TAG, "哔哩哔哩模式竖屏右滑操作完成")
             }
         } else if (isTiktokModeEnabled) {
             // TikTok模式：右滑操作
@@ -1726,6 +1732,36 @@ class KeyMapperAccessibilityService : AccessibilityService() {
 
         performBilibiliSwipeGesture(path)
         Log.d(TAG, "哔哩哔哩模式 - 从中间(${centerX},${centerY})向右滑动${swipeDistance}px")
+    }
+
+    // 哔哩哔哩模式竖屏：从(514,405)向左滑动100像素
+    private fun performBilibiliPortraitLeftSwipe() {
+        val startX = 514f
+        val startY = 405f
+        val swipeDistance = 100f
+
+        val path = Path().apply {
+            moveTo(startX, startY)
+            lineTo(startX - swipeDistance, startY)  // 向左滑动100px
+        }
+
+        performBilibiliSwipeGesture(path)
+        Log.d(TAG, "哔哩哔哩模式竖屏 - 从(${startX},${startY})向左滑动${swipeDistance}px")
+    }
+
+    // 哔哩哔哩模式竖屏：从(514,405)向右滑动100像素
+    private fun performBilibiliPortraitRightSwipe() {
+        val startX = 514f
+        val startY = 405f
+        val swipeDistance = 100f
+
+        val path = Path().apply {
+            moveTo(startX, startY)
+            lineTo(startX + swipeDistance, startY)  // 向右滑动100px
+        }
+
+        performBilibiliSwipeGesture(path)
+        Log.d(TAG, "哔哩哔哩模式竖屏 - 从(${startX},${startY})向右滑动${swipeDistance}px")
     }
 
     // 哔哩哔哩模式：执行滑动手势
