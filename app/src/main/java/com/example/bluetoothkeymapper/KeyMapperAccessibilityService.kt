@@ -1442,10 +1442,21 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         Log.e(TAG, "F5键短按 - 执行原上方向键功能")
 
         if (isTvModeEnabled) {
-            // 电视模式：点击坐标(1079,84)
-            Log.e(TAG, "电视模式 - F5短按，执行单击屏幕坐标(1079,84)操作")
-            performSingleClick(1079f, 84f)
-            Log.e(TAG, "电视模式F5短按单击操作完成")
+            // 电视模式：根据屏幕方向选择不同坐标
+            val orientation = resources.configuration.orientation
+            val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+            if (isLandscape) {
+                // 横屏：点击坐标(227,117)
+                Log.e(TAG, "电视模式横屏 - F5短按，执行单击屏幕坐标(227,117)操作")
+                performSingleClick(227f, 117f)
+                Log.e(TAG, "电视模式横屏F5短按单击操作完成")
+            } else {
+                // 竖屏：点击坐标(1079,84)
+                Log.e(TAG, "电视模式竖屏 - F5短按，执行单击屏幕坐标(1079,84)操作")
+                performSingleClick(1079f, 84f)
+                Log.e(TAG, "电视模式竖屏F5短按单击操作完成")
+            }
         } else if (isDoubleClickMappingEnabled) {
             if (isTiktokModeEnabled) {
                 // TikTok模式：禁用上方向键功能
