@@ -42,7 +42,12 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     private var dpadRightPressTime = 0L // 右方向键按下时间戳
     private var dpadRightHandler: android.os.Handler? = null // 右方向键长按处理器
     private var isDpadRightLongPressTriggered = false // 右方向键长按是否已触发
-    
+
+    // 下方向键长按检测相关变量
+    private var dpadDownPressTime = 0L // 下方向键按下时间戳
+    private var dpadDownHandler: android.os.Handler? = null // 下方向键长按处理器
+    private var isDpadDownLongPressTriggered = false // 下方向键长按是否已触发
+
     companion object {
         private const val TAG = "KeyMapperAccessibility"
         var instance: KeyMapperAccessibilityService? = null
@@ -88,6 +93,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         f5KeyHandler = android.os.Handler()
         dpadLeftHandler = android.os.Handler()
         dpadRightHandler = android.os.Handler()
+        dpadDownHandler = android.os.Handler()
         
         // 从SharedPreferences读取初始状态
         val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -647,51 +653,83 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
             
-            // 处理dpad down键 - 根据模式进行不同映射
+            // 处理dpad down键 - 长按触发截屏，短按根据模式进行不同映射
             KeyEvent.KEYCODE_DPAD_DOWN -> {  // 20 方向键下
                 Log.e(TAG, "!!! 检测到dpad down按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    if (isBilibiliModeEnabled) {
-                        // 哔哩哔哩模式：只在横屏时执行单击屏幕中心
-                        val orientation = resources.configuration.orientation
-                        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+                    // 记录按下时间，开始长按检测
+                    if (dpadDownPressTime == 0L) {
+                        dpadDownPressTime = System.currentTimeMillis()
+                        isDpadDownLongPressTriggered = false
 
-                        if (isLandscape) {
-                            Log.e(TAG, "哔哩哔哩模式横屏 - 执行屏幕中心单击操作")
-                            performBilibiliCenterClick()
-                            Log.e(TAG, "哔哩哔哩模式中心单击操作完成")
-                        } else {
-                            Log.e(TAG, "哔哩哔哩模式竖屏 - 下方向键功能已禁用")
-                        }
-                    } else if (isTiktokModeEnabled) {
-                        // TikTok模式：禁用下方向键功能
-                        Log.e(TAG, "TikTok模式 - 下方向键功能已禁用")
-                        return true // 拦截事件但不执行任何操作
-                    } else if (isTvModeEnabled) {
-                        // 电视模式：执行单击屏幕坐标(1580,407)
-                        Log.e(TAG, "电视模式 - 执行单击屏幕坐标(1580,407)操作")
-                        performSingleClick(1580f, 407f)
-                        Log.e(TAG, "电视模式下方向键单击操作完成")
-                    } else if (isDoubleClickMappingEnabled) {
-                        // YouTube模式：根据屏幕方向选择不同坐标
-                        val orientation = resources.configuration.orientation
-                        val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+                        // 启动长按检测（500ms后触发）
+                        dpadDownHandler?.postDelayed({
+                            if (dpadDownPressTime > 0L && !isDpadDownLongPressTriggered) {
+                                Log.e(TAG, "下方向键长按触发 - 执行截屏操作")
+                                isDpadDownLongPressTriggered = true
+                                performScreenshot()
+                            }
+                        }, 500)
 
-                        if (isLandscape) {
-                            Log.e(TAG, "YouTube横屏模式 - 执行单击屏幕坐标(1900,381)操作")
-                            performSingleClick(1900f, 381f)
-                            Log.e(TAG, "YouTube横屏模式下方向键操作完成")
-                        } else {
-                            Log.e(TAG, "YouTube竖屏模式 - 执行单击屏幕坐标(133,439)操作 - 显示/隐藏控制器")
-                            performSingleClick(133f, 439f)
-                            Log.e(TAG, "YouTube竖屏模式下方向键操作完成")
-                        }
-                    } else {
-                        Log.e(TAG, "执行点击CC按钮操作 - 打开/关闭YouTube CC字幕")
-                        sendKeyC()
-                        Log.e(TAG, "CC按钮点击操作完成")
+                        Log.e(TAG, "下方向键按下，开始长按检测")
                     }
+                } else if (event.action == KeyEvent.ACTION_UP) {
+                    // 按键松开
+                    val pressDuration = System.currentTimeMillis() - dpadDownPressTime
+                    Log.e(TAG, "下方向键松开，按压时长: ${pressDuration}ms")
+
+                    // 取消长按检测
+                    dpadDownHandler?.removeCallbacksAndMessages(null)
+
+                    // 如果未触发长按（短按），执行原有功能
+                    if (!isDpadDownLongPressTriggered && pressDuration < 500) {
+                        Log.e(TAG, "下方向键短按 - 执行原有功能")
+
+                        if (isBilibiliModeEnabled) {
+                            // 哔哩哔哩模式：只在横屏时执行单击屏幕中心
+                            val orientation = resources.configuration.orientation
+                            val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+                            if (isLandscape) {
+                                Log.e(TAG, "哔哩哔哩模式横屏 - 执行屏幕中心单击操作")
+                                performBilibiliCenterClick()
+                                Log.e(TAG, "哔哩哔哩模式中心单击操作完成")
+                            } else {
+                                Log.e(TAG, "哔哩哔哩模式竖屏 - 下方向键功能已禁用")
+                            }
+                        } else if (isTiktokModeEnabled) {
+                            // TikTok模式：禁用下方向键功能
+                            Log.e(TAG, "TikTok模式 - 下方向键功能已禁用")
+                        } else if (isTvModeEnabled) {
+                            // 电视模式：执行单击屏幕坐标(1580,407)
+                            Log.e(TAG, "电视模式 - 执行单击屏幕坐标(1580,407)操作")
+                            performSingleClick(1580f, 407f)
+                            Log.e(TAG, "电视模式下方向键单击操作完成")
+                        } else if (isDoubleClickMappingEnabled) {
+                            // YouTube模式：根据屏幕方向选择不同坐标
+                            val orientation = resources.configuration.orientation
+                            val isLandscape = orientation == Configuration.ORIENTATION_LANDSCAPE
+
+                            if (isLandscape) {
+                                Log.e(TAG, "YouTube横屏模式 - 执行单击屏幕坐标(1900,381)操作")
+                                performSingleClick(1900f, 381f)
+                                Log.e(TAG, "YouTube横屏模式下方向键操作完成")
+                            } else {
+                                Log.e(TAG, "YouTube竖屏模式 - 执行单击屏幕坐标(133,439)操作 - 显示/隐藏控制器")
+                                performSingleClick(133f, 439f)
+                                Log.e(TAG, "YouTube竖屏模式下方向键操作完成")
+                            }
+                        } else {
+                            Log.e(TAG, "执行点击CC按钮操作 - 打开/关闭YouTube CC字幕")
+                            sendKeyC()
+                            Log.e(TAG, "CC按钮点击操作完成")
+                        }
+                    }
+
+                    // 重置状态
+                    dpadDownPressTime = 0L
+                    isDpadDownLongPressTriggered = false
                 }
                 return true // 拦截原始事件
             }
@@ -1826,6 +1864,22 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         Log.d(TAG, "哔哩哔哩模式 - 执行从x轴4/5处($startX)到左($endX)的长滑动，Y坐标:$centerY")
     }
 
+    // 执行截屏操作
+    private fun performScreenshot() {
+        try {
+            Log.d(TAG, "执行截屏操作")
+            // 使用无障碍服务的全局操作来执行截屏
+            val result = performGlobalAction(GLOBAL_ACTION_TAKE_SCREENSHOT)
+            if (result) {
+                Log.d(TAG, "截屏操作成功触发")
+            } else {
+                Log.e(TAG, "截屏操作失败")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "执行截屏时出错: ${e.message}", e)
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         instance = null
@@ -1835,6 +1889,8 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         dpadLeftHandler = null
         dpadRightHandler?.removeCallbacksAndMessages(null)
         dpadRightHandler = null
+        dpadDownHandler?.removeCallbacksAndMessages(null)
+        dpadDownHandler = null
         Log.d(TAG, "无障碍服务已销毁")
     }
 }
