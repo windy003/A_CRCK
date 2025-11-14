@@ -734,13 +734,13 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
 
-            // 处理dpad up键 - 静音和恢复音量切换
+            // 处理dpad up键 - 截屏
             KeyEvent.KEYCODE_DPAD_UP -> {  // 19 方向键上
                 Log.e(TAG, "!!! 检测到dpad up按键: ${event.keyCode} !!!")
 
                 if (event.action == KeyEvent.ACTION_DOWN) {
-                    Log.e(TAG, "上方向键 - 执行静音/恢复音量切换")
-                    toggleMute()
+                    Log.e(TAG, "上方向键 - 执行截屏操作")
+                    performScreenshot()
                 }
                 return true // 拦截原始事件
             }
