@@ -734,17 +734,6 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true // 拦截原始事件
             }
 
-            // 处理dpad up键 - 截屏
-            KeyEvent.KEYCODE_DPAD_UP -> {  // 19 方向键上
-                Log.e(TAG, "!!! 检测到dpad up按键: ${event.keyCode} !!!")
-
-                if (event.action == KeyEvent.ACTION_DOWN) {
-                    Log.e(TAG, "上方向键 - 执行截屏操作")
-                    performScreenshot()
-                }
-                return true // 拦截原始事件
-            }
-            
             // 处理返回按键 - 根据模式进行不同映射
             KeyEvent.KEYCODE_BACK -> {  // 4 返回键
                 Log.e(TAG, "!!! 检测到返回按键: ${event.keyCode} !!!")
