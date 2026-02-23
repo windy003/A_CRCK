@@ -36,6 +36,11 @@ class KeyMapperAccessibilityService : AccessibilityService() {
     private var dpadDownHandler: android.os.Handler? = null // 下方向键长按处理器
     private var isDpadDownLongPressTriggered = false // 下方向键长按是否已触发
 
+    // 语音键长按检测相关变量
+    private var voiceKeyPressTime = 0L // 语音键按下时间戳
+    private var voiceKeyHandler: android.os.Handler? = null // 语音键长按处理器
+    private var isVoiceKeyLongPressTriggered = false // 语音键长按是否已触发
+
     companion object {
         private const val TAG = "KeyMapperAccessibility"
         var instance: KeyMapperAccessibilityService? = null
@@ -75,6 +80,7 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         dpadLeftHandler = android.os.Handler()
         dpadRightHandler = android.os.Handler()
         dpadDownHandler = android.os.Handler()
+        voiceKeyHandler = android.os.Handler()
         
         // 从SharedPreferences读取初始状态
         val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -477,6 +483,42 @@ class KeyMapperAccessibilityService : AccessibilityService() {
                 return true
             }
 
+            // 处理语音键 - 支持长按检测 (键码135)
+            135 -> {
+                Log.e(TAG, "!!! 检测到语音键: ${event.keyCode} !!!")
+
+                when (event.action) {
+                    KeyEvent.ACTION_DOWN -> {
+                        voiceKeyPressTime = System.currentTimeMillis()
+                        isVoiceKeyLongPressTriggered = false
+
+                        voiceKeyHandler?.postDelayed({
+                            if (voiceKeyPressTime > 0 && !isVoiceKeyLongPressTriggered) {
+                                isVoiceKeyLongPressTriggered = true
+                                handleVoiceKeyLongPress()
+                            }
+                        }, 1000)
+
+                        Log.e(TAG, "语音键按下，开始计时...")
+                    }
+
+                    KeyEvent.ACTION_UP -> {
+                        val pressDuration = System.currentTimeMillis() - voiceKeyPressTime
+                        Log.e(TAG, "语音键松开，按下时长: ${pressDuration}ms")
+
+                        voiceKeyHandler?.removeCallbacksAndMessages(null)
+
+                        if (!isVoiceKeyLongPressTriggered && pressDuration < 1000) {
+                            handleVoiceKeyShortPress()
+                        }
+
+                        voiceKeyPressTime = 0L
+                        isVoiceKeyLongPressTriggered = false
+                    }
+                }
+                return true
+            }
+
             // 处理dpad right键 - 支持长按检测
             KeyEvent.KEYCODE_DPAD_RIGHT -> {  // 22 方向键右
                 Log.e(TAG, "!!! 检测到dpad right按键: ${event.keyCode} !!!")
@@ -844,6 +886,32 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         }
     }
 
+    // 处理语音键短按
+    private fun handleVoiceKeyShortPress() {
+        if (isYoutubeModeEnabled) {
+            val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+            if (isLandscape && is16to9Screen()) {
+                Log.e(TAG, "YouTube模式16:9横屏 - 语音键单击(326,124)")
+                performSingleClick(326f, 124f)
+                return
+            }
+        }
+        Log.e(TAG, "语音键单击 - 非YouTube16:9横屏模式，不处理")
+    }
+
+    // 处理语音键长按
+    private fun handleVoiceKeyLongPress() {
+        if (isYoutubeModeEnabled) {
+            val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+            if (isLandscape && is16to9Screen()) {
+                Log.e(TAG, "YouTube模式16:9横屏 - 语音键长按(1856,96)")
+                performSingleClick(1856f, 96f)
+                return
+            }
+        }
+        Log.e(TAG, "语音键长按 - 非YouTube16:9横屏模式，不处理")
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         instance = null
@@ -853,6 +921,8 @@ class KeyMapperAccessibilityService : AccessibilityService() {
         dpadRightHandler = null
         dpadDownHandler?.removeCallbacksAndMessages(null)
         dpadDownHandler = null
+        voiceKeyHandler?.removeCallbacksAndMessages(null)
+        voiceKeyHandler = null
         Log.d(TAG, "无障碍服务已销毁")
     }
 }
